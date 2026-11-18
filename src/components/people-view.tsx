@@ -283,7 +283,7 @@ export function PeopleView({
       )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="md:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("member.newTitle")}</DialogTitle>
             <DialogDescription>{t("people.emptyHint")}</DialogDescription>
@@ -302,7 +302,7 @@ export function PeopleView({
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="md:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("member.editTitle")}</DialogTitle>
             <DialogDescription>{t("member.editTitle")}</DialogDescription>
@@ -415,7 +415,7 @@ function MemberForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field className="gap-1">
             <FieldLabel htmlFor="member-name">{t("member.name")}</FieldLabel>
             <Input
@@ -441,7 +441,7 @@ function MemberForm({
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field className="gap-1">
             <FieldLabel htmlFor="member-role">{t("member.role")}</FieldLabel>
             <Input

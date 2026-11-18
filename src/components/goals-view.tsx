@@ -260,7 +260,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
       )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="md:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("goals.newTitle")}</DialogTitle>
             <DialogDescription>{t("goals.emptyHint")}</DialogDescription>
@@ -275,7 +275,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="md:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("goals.editTitle")}</DialogTitle>
             <DialogDescription>{t("goals.editTitle")}</DialogDescription>
@@ -353,7 +353,7 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <FieldGroup className="gap-3">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field className="gap-1">
             <FieldLabel htmlFor="goal-title">{t("goals.title")}</FieldLabel>
             <Input
@@ -407,9 +407,9 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Field orientation="horizontal" className="items-center gap-1.5">
-            <FieldLabel className="w-12 shrink-0 text-xs text-muted-foreground">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field className="gap-1">
+            <FieldLabel className="text-xs text-muted-foreground">
               {t("goals.owner")}
             </FieldLabel>
             <AssigneePicker
@@ -418,8 +418,8 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
               onChange={setOwnerId}
             />
           </Field>
-          <Field orientation="horizontal" className="items-center gap-1.5">
-            <FieldLabel className="w-16 shrink-0 text-xs text-muted-foreground">
+          <Field className="gap-1">
+            <FieldLabel className="text-xs text-muted-foreground">
               {t("goals.target")}
             </FieldLabel>
             <DateField

@@ -31,7 +31,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/40 backdrop-blur-xs duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -54,18 +54,19 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "fixed z-50 grid w-full gap-4 bg-popover p-4 text-sm text-popover-foreground outline-none transition-all duration-200",
-          // Mobile: Bottom sheet
-          "inset-x-0 bottom-0 top-auto max-w-full rounded-t-2xl rounded-b-none border-t border-border/80 shadow-2xl max-h-[90vh] overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]",
+          // Mobile: Always a Bottom sheet (< md / < 768px)
+          "inset-x-0 bottom-0 top-auto max-w-full rounded-t-2xl rounded-b-none border-t border-x-0 border-b-0 border-border/80 shadow-2xl max-h-[90vh] overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]",
+          "translate-x-0 translate-y-0 transform-none",
           "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom",
-          // Desktop: Centered modal dialog
-          "sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-sm sm:rounded-xl sm:border sm:ring-1 sm:ring-foreground/10 sm:max-h-none sm:overflow-visible sm:pb-4 sm:duration-100",
-          "sm:data-open:zoom-in-95 sm:data-open:slide-in-from-bottom-0 sm:data-closed:zoom-out-95 sm:data-closed:slide-out-to-bottom-0",
+          // Desktop: Centered modal dialog on md (>= 768px)
+          "md:top-1/2 md:bottom-auto md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-lg md:rounded-xl md:border md:border-border/80 md:ring-1 md:ring-foreground/10 md:max-h-[85vh] md:overflow-y-auto md:pb-4 md:duration-100",
+          "md:data-open:zoom-in-95 md:data-open:slide-in-from-bottom-0 md:data-closed:zoom-out-95 md:data-closed:slide-out-to-bottom-0",
           className
         )}
         {...props}
       >
         <div
-          className="mx-auto -mt-1 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/25 sm:hidden"
+          className="mx-auto -mt-1 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/30 md:hidden"
           aria-hidden="true"
         />
         {children}
@@ -80,8 +81,7 @@ function DialogContent({
               />
             }
           >
-            <XIcon
-            />
+            <XIcon />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -112,7 +112,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-none border-t bg-muted/50 p-4 sm:rounded-b-xl sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-none border-t bg-muted/50 p-4 md:rounded-b-xl md:flex-row md:justify-end",
         className
       )}
       {...props}

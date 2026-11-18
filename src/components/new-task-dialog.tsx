@@ -43,7 +43,7 @@ export function NewTaskDialog({
   const { t } = useLocale();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("action.newTask")}</DialogTitle>
           <DialogDescription>{t("board.dropHint")}</DialogDescription>
@@ -113,31 +113,33 @@ function TaskForm({
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <FieldGroup className="gap-3">
-        <Field className="gap-1">
-          <FieldLabel htmlFor="task-title">{t("task.title")}</FieldLabel>
-          <Input
-            id="task-title"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder={t("task.titlePlaceholder")}
-            required
-            autoFocus
-            maxLength={160}
-            dir="auto"
-          />
-        </Field>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field className="gap-1">
+            <FieldLabel htmlFor="task-title">{t("task.title")}</FieldLabel>
+            <Input
+              id="task-title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder={t("task.titlePlaceholder")}
+              required
+              autoFocus
+              maxLength={160}
+              dir="auto"
+            />
+          </Field>
 
-        <Field className="gap-1">
-          <FieldLabel htmlFor="task-title-en">Title (EN)</FieldLabel>
-          <Input
-            id="task-title-en"
-            value={titleEn}
-            onChange={(event) => setTitleEn(event.target.value)}
-            placeholder="e.g. Prepare the weekly report"
-            maxLength={160}
-            dir="ltr"
-          />
-        </Field>
+          <Field className="gap-1">
+            <FieldLabel htmlFor="task-title-en">Title (EN)</FieldLabel>
+            <Input
+              id="task-title-en"
+              value={titleEn}
+              onChange={(event) => setTitleEn(event.target.value)}
+              placeholder="e.g. Prepare the weekly report"
+              maxLength={160}
+              dir="ltr"
+            />
+          </Field>
+        </div>
 
         <Field className="gap-1">
           <FieldLabel htmlFor="task-description">{t("task.description")}</FieldLabel>
@@ -190,7 +192,7 @@ function TaskForm({
           <PriorityToggleGroup value={priority} onChange={setPriority} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field className="gap-1">
             <FieldLabel className="text-xs text-muted-foreground">
               {t("task.assignee")}

@@ -171,6 +171,18 @@ const messages = {
   "task.deletedMember": ["عضو حذف‌شده", "Removed member"],
   "task.blockedBanner": ["این تسک مسدود است", "This task is blocked"],
   "task.panelTitle": ["جزئیات تسک", "Task details"],
+  "task.link": ["کپی لینک تسک", "Copy task link"],
+  "task.linkCopied": ["لینک تسک کپی شد", "Task link copied"],
+  "task.linkCopyFailed": [
+    "کپی نشد؛ نشانی را از نوار آدرس بردارید",
+    "Couldn't copy — use the address bar instead",
+  ],
+  "task.notFoundTitle": ["این تسک پیدا نشد", "Task not found"],
+  "task.notFoundBody": [
+    "این تسک حذف شده یا لینک اشتباه است.",
+    "This task was deleted, or the link is wrong.",
+  ],
+  "task.backToBoard": ["بازگشت به برد", "Back to board"],
 
   // ── گفت‌وگو
   "comment.placeholder": [

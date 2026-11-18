@@ -54,6 +54,7 @@ import { formatRelative } from "@/lib/dates";
 import { filterTasks, workspaceStats, type TaskFilterOptions } from "@/lib/derived";
 import { memberName } from "@/lib/locale-text";
 import type { Locale } from "@/lib/i18n";
+import { taskIdFromPath, taskPath } from "@/lib/task-url";
 import type { TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -70,7 +71,7 @@ const NAV: {
   { value: "goals", labelKey: "nav.goals", icon: TargetIcon },
 ];
 
-export function AppShell() {
+export function AppShell({ initialTaskId = null }: { initialTaskId?: string | null }) {
   const { locale, setLocale, t, formatNumber } = useLocale();
   const {
     workspace,
@@ -90,7 +91,7 @@ export function AppShell() {
     assigneeId: null,
     onlyOverdue: false,
   });
-  const [openTaskId, setOpenTaskId] = React.useState<string | null>(null);
+  const [openTaskId, setOpenTaskId] = React.useState<string | null>(initialTaskId);
   const [newTask, setNewTask] = React.useState<{
     open: boolean;
     status: TaskStatus;
@@ -114,6 +115,36 @@ export function AppShell() {
   const filtered = workspace
     ? filterTasks(workspace, deferredFilters, { activity: activityMap })
     : [];
+
+  /**
+   * باز کردن تسک، آدرس اختصاصی‌اش را هم می‌سازد (`/tasks/<id>`) تا لینک
+   * قابل اشتراک باشد. اگر همین حالا روی یک تسک هستیم، ورودی تاریخچه
+   * جایگزین می‌شود تا دکمهٔ بازگشت مرورگر مستقیم به برد برگردد.
+   */
+  const openTask = React.useCallback((taskId: string) => {
+    setOpenTaskId(taskId);
+    if (typeof window === "undefined") return;
+    const state = { hamteamTask: taskId };
+    if (taskIdFromPath(window.location.pathname)) {
+      window.history.replaceState(state, "", taskPath(taskId));
+    } else {
+      window.history.pushState(state, "", taskPath(taskId));
+    }
+  }, []);
+
+  const closeTask = React.useCallback(() => {
+    setOpenTaskId(null);
+    if (typeof window === "undefined") return;
+    if (window.history.state?.hamteamTask) window.history.back();
+    else window.history.replaceState(null, "", "/");
+  }, []);
+
+  // دکمه‌های بازگشت/جلو مرورگر پنل را با آدرس هم‌گام می‌کنند.
+  React.useEffect(() => {
+    const sync = () => setOpenTaskId(taskIdFromPath(window.location.pathname));
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
 
   const openNewTask = React.useCallback(
     (taskStatus: TaskStatus = "backlog") =>
@@ -338,7 +369,7 @@ export function AppShell() {
             {view === "board" ? (
               <BoardView
                 filters={deferredFilters}
-                onOpenTask={setOpenTaskId}
+                onOpenTask={openTask}
                 onAddTask={openNewTask}
                 activity={activityMap}
               />
@@ -347,16 +378,16 @@ export function AppShell() {
             {view === "table" ? (
               <TableView
                 filters={deferredFilters}
-                onOpenTask={setOpenTaskId}
+                onOpenTask={openTask}
                 activity={activityMap}
               />
             ) : null}
 
             {view === "people" ? (
-              <PeopleView onOpenTask={setOpenTaskId} onShowTasks={showMemberTasks} />
+              <PeopleView onOpenTask={openTask} onShowTasks={showMemberTasks} />
             ) : null}
 
-            {view === "goals" ? <GoalsView onOpenTask={setOpenTaskId} /> : null}
+            {view === "goals" ? <GoalsView onOpenTask={openTask} /> : null}
           </>
         ) : null}
       </main>
@@ -391,7 +422,7 @@ export function AppShell() {
       <TaskSheet
         taskId={openTaskId}
         onOpenChange={(open) => {
-          if (!open) setOpenTaskId(null);
+          if (!open) closeTask();
         }}
         onSeen={markTaskSeen}
       />

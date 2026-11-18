@@ -3,6 +3,8 @@
 import * as React from "react";
 import {
   AlignLeftIcon,
+  ArrowRightIcon,
+  LinkIcon,
   MessageSquareIcon,
   Trash2Icon,
   UserRoundIcon,
@@ -44,6 +46,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toast";
 import {
   useWorkspaceActions,
   useWorkspaceIndex,
@@ -59,6 +63,7 @@ import {
   taskTitle,
 } from "@/lib/locale-text";
 import type { Task } from "@/lib/types";
+import { taskUrl } from "@/lib/task-url";
 
 export function TaskSheet({
   taskId,
@@ -69,8 +74,9 @@ export function TaskSheet({
   onOpenChange: (open: boolean) => void;
   onSeen?: (taskId: string) => void;
 }) {
-  const { isRtl } = useLocale();
+  const { isRtl, t } = useLocale();
   const index = useWorkspaceIndex();
+  const { status } = useWorkspaceState();
   const task = index?.task(taskId) ?? null;
 
   return (
@@ -82,9 +88,26 @@ export function TaskSheet({
         {task ? (
           <TaskSheetBody task={task} onClose={() => onOpenChange(false)} onSeen={onSeen} />
         ) : (
-          <SheetHeader className="p-6">
-            <SheetTitle>—</SheetTitle>
-            <SheetDescription />
+          <SheetHeader className="gap-3 p-6">
+            <SheetTitle>
+              {status === "loading" ? t("app.loading") : t("task.notFoundTitle")}
+            </SheetTitle>
+            <SheetDescription>
+              {status === "loading" ? t("app.loading") : t("task.notFoundBody")}
+            </SheetDescription>
+            {status === "loading" ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="self-start"
+                onClick={() => onOpenChange(false)}
+              >
+                <ArrowRightIcon data-icon="inline-start" />
+                {t("task.backToBoard")}
+              </Button>
+            )}
           </SheetHeader>
         )}
       </SheetContent>
@@ -132,6 +155,24 @@ function TaskSheetBody({
       locale === "fa" ? { blockedReason: next } : { blockedReasonEn: next },
     );
 
+  // تیتر تب، همان چیزی است که گیرندهٔ لینک در مرورگر می‌بیند.
+  React.useEffect(() => {
+    const previous = document.title;
+    document.title = `${taskTitle(locale, task)} · ${t("app.name")}`;
+    return () => {
+      document.title = previous;
+    };
+  }, [locale, t, task]);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(taskUrl(task.id));
+      toast.add({ title: t("task.linkCopied"), type: "success" });
+    } catch {
+      toast.add({ title: t("task.linkCopyFailed"), type: "error" });
+    }
+  };
+
   return (
     <>
       <SheetHeader className="gap-2 border-b p-5 pe-12">
@@ -149,37 +190,48 @@ function TaskSheetBody({
               className="px-1.5 text-lg leading-7 font-medium text-foreground hover:bg-transparent focus:bg-transparent focus:ring-0"
             />
           </div>
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={<Button variant="ghost" size="icon-sm" />}
-              className="-me-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              aria-label={t("task.delete")}
-              title={t("task.delete")}
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground"
+              onClick={() => void copyLink()}
+              aria-label={t("task.link")}
+              title={t("task.link")}
             >
-              <Trash2Icon />
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t("task.deleteTitle")}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t("task.deleteDescription")}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onClose();
-                    void deleteTask(task.id);
-                  }}
-                >
-                  {t("action.delete")}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+              <LinkIcon />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={<Button variant="ghost" size="icon-sm" />}
+                className="-me-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                aria-label={t("task.delete")}
+                title={t("task.delete")}
+              >
+                <Trash2Icon />
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("task.deleteTitle")}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("task.deleteDescription")}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      onClose();
+                      void deleteTask(task.id);
+                    }}
+                  >
+                    {t("action.delete")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
-
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <MemberAvatar member={assignee} size="sm" />

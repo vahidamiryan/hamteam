@@ -99,32 +99,15 @@ export function AppShell() {
   const [resetOpen, setResetOpen] = React.useState(false);
 
   const {
-    getTaskActivity,
+    activityMap,
     markTaskSeen,
     markAllSeen,
     unreadTasksCount,
+    mentionedTasksCount,
   } = useTaskActivity(workspace, currentUser);
 
-  const activityMap = React.useMemo(() => {
-    if (!workspace) return {};
-    const map: Record<string, { hasChanges: boolean; hasUnreadMention: boolean }> = {};
-    workspace.tasks.forEach((t) => {
-      const act = getTaskActivity(t);
-      map[t.id] = { hasChanges: act.hasChanges, hasUnreadMention: act.hasUnreadMention };
-    });
-    return map;
-  }, [workspace, getTaskActivity]);
-
-  const activeFilters = React.useMemo(
-    () => ({
-      ...filters,
-      activityMap,
-    }),
-    [filters, activityMap],
-  );
-
   const stats = workspace ? workspaceStats(workspace) : null;
-  const filtered = workspace ? filterTasks(workspace, activeFilters) : [];
+  const filtered = workspace ? filterTasks(workspace, filters, { activity: activityMap }) : [];
 
   const openNewTask = (taskStatus: TaskStatus = "backlog") =>
     setNewTask({
@@ -342,24 +325,25 @@ export function AppShell() {
                 onChange={setFilters}
                 resultCount={filtered.length}
                 unreadCount={unreadTasksCount}
+                mentionCount={mentionedTasksCount}
                 onMarkAllSeen={markAllSeen}
               />
             ) : null}
 
             {view === "board" ? (
               <BoardView
-                filters={activeFilters}
+                filters={filters}
                 onOpenTask={setOpenTaskId}
                 onAddTask={openNewTask}
-                getActivity={getTaskActivity}
+                activity={activityMap}
               />
             ) : null}
 
             {view === "table" ? (
               <TableView
-                filters={activeFilters}
+                filters={filters}
                 onOpenTask={setOpenTaskId}
-                getActivity={getTaskActivity}
+                activity={activityMap}
               />
             ) : null}
 

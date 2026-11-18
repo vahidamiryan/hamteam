@@ -1,71 +1,89 @@
+/** سقف تعداد و حجم پیوست‌ها؛ هم در فرم و هم در اعتبارسنجی سرور استفاده می‌شود. */
+export const MAX_ATTACHMENTS = 6;
+/** حداکثر طول هر Data URL (تقریباً ۹۰۰ کیلوبایت) تا سند فضای کاری سبک بماند. */
+export const MAX_ATTACHMENT_CHARS = 1_200_000;
+
+export type ImageErrorCode = "not-image" | "read-failed" | "load-failed" | "too-large";
+
+export class ImageError extends Error {
+  readonly code: ImageErrorCode;
+
+  constructor(code: ImageErrorCode) {
+    super(code);
+    this.name = "ImageError";
+    this.code = code;
+  }
+}
+
+/** پیوست‌ها یا Data URL تصویرند یا لینک http(s). */
+export function isAttachmentSource(value: string): boolean {
+  return (
+    /^data:image\/[a-z0-9.+-]+;base64,/i.test(value) || /^https?:\/\//i.test(value)
+  );
+}
+
 /**
- * تبدیل و فشرده‌سازی تصویر انتخاب‌شده به Data URL استاندارد WebP/JPEG
- * برای نگهداری سبک در سند و هماهنگی بلادرنگ وب‌سوکت.
+ * تصویر انتخاب‌شده را به Data URL سبک‌تر (WebP و در صورت نبود، JPEG) تبدیل می‌کند
+ * تا بدون فضای ذخیره‌سازی بیرونی در سند فضای کاری و همگام‌سازی بلادرنگ جا شود.
  */
 export async function compressImageFile(
   file: File,
-  maxWidth = 1200,
-  maxHeight = 1200,
-  quality = 0.82,
+  options: { maxSize?: number; quality?: number } = {},
 ): Promise<string> {
+  const { maxSize = 1000, quality = 0.78 } = options;
+
+  if (!file.type.startsWith("image/")) throw new ImageError("not-image");
+
+  const source = await readAsDataUrl(file);
+
+  // گیف‌های سبک دست‌نخورده می‌مانند تا انیمیشنشان از دست نرود.
+  if (file.type === "image/gif" && file.size < 400 * 1024) return assertSize(source);
+
+  const image = await loadImage(source);
+  const scale = Math.min(1, maxSize / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) return assertSize(source);
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(image, 0, 0, width, height);
+
+  const webp = canvas.toDataURL("image/webp", quality);
+  if (webp.startsWith("data:image/webp")) return assertSize(webp);
+
+  return assertSize(canvas.toDataURL("image/jpeg", quality));
+}
+
+function assertSize(dataUrl: string): string {
+  if (dataUrl.length > MAX_ATTACHMENT_CHARS) throw new ImageError("too-large");
+  return dataUrl;
+}
+
+function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    // اگر فایل تصویر نبود رد شود
-    if (!file.type.startsWith("image/")) {
-      return reject(new Error("فایل انتخاب‌شده تصویر نیست."));
-    }
-
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error("خطا در خواندن فایل تصویر."));
+    reader.onerror = () => reject(new ImageError("read-failed"));
     reader.onload = (event) => {
-      const src = event.target?.result;
-      if (typeof src !== "string") {
-        return reject(new Error("خطا در دریافت محتوای تصویر."));
-      }
-
-      // گیف‌های متحرک یا فایل‌های خیلی کوچک دست‌نخورده باقی بمانند
-      if (file.type === "image/gif" && file.size < 500 * 1024) {
-        return resolve(src);
-      }
-
-      const img = new Image();
-      img.onerror = () => reject(new Error("خطا در بارگذاری تصویر."));
-      img.onload = () => {
-        let width = img.naturalWidth || img.width;
-        let height = img.naturalHeight || img.height;
-
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          return resolve(src);
-        }
-
-        // تمیزکاری لبه‌ها
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // تلاش برای خروجی webp، در صورت عدم پشتیبانی jpeg
-        try {
-          const webp = canvas.toDataURL("image/webp", quality);
-          if (webp.startsWith("data:image/webp")) {
-            return resolve(webp);
-          }
-        } catch {}
-
-        const jpeg = canvas.toDataURL("image/jpeg", quality);
-        resolve(jpeg);
-      };
-      img.src = src;
+      const result = event.target?.result;
+      if (typeof result === "string") resolve(result);
+      else reject(new ImageError("read-failed"));
     };
     reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onerror = () => reject(new ImageError("load-failed"));
+    image.onload = () => resolve(image);
+    image.src = src;
   });
 }

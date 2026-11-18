@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { AtSignIcon, SparklesIcon } from "lucide-react";
+import { AtSignIcon } from "lucide-react";
 
-import { DueStamp, DoneChip, GoalTag, PriorityDot } from "@/components/chips";
+import { ActivityDot, DueStamp, DoneChip, GoalTag, PriorityDot } from "@/components/chips";
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
 import {
@@ -65,24 +65,17 @@ export function TaskCard({
       aria-label={t("action.openTask")}
       data-dragging={dragging ? "true" : undefined}
       className={cn(
-        "cursor-grab gap-2.5 text-start transition-all outline-none select-none",
+        "cursor-grab gap-2.5 text-start transition-colors outline-none select-none",
         "ring-foreground/8 hover:ring-foreground/15 focus-visible:ring-2 focus-visible:ring-ring",
-        activity?.hasUnreadMention && "ring-1 ring-amber-500/40 border-amber-500/30 bg-amber-500/[0.02]",
-        activity?.hasChanges && !activity?.hasUnreadMention && "ring-1 ring-primary/30 border-primary/30 bg-primary/[0.015]",
         "data-dragging:opacity-40 active:cursor-grabbing",
         className,
       )}
     >
       <CardHeader className="gap-1.5">
         {activity?.hasUnreadMention ? (
-          <span className="inline-flex items-center gap-1 self-start rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30">
-            <AtSignIcon className="size-3" />
-            <span>{t("task.mentionedYou")}</span>
-          </span>
-        ) : activity?.hasChanges ? (
-          <span className="inline-flex items-center gap-1 self-start rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary ring-1 ring-primary/25">
-            <span className="size-1.5 rounded-full bg-primary animate-pulse" />
-            <span>{t("task.hasChanges")}</span>
+          <span className="inline-flex items-center gap-1 text-xs text-status-pending">
+            <AtSignIcon className="size-3.5" aria-hidden="true" />
+            {t("task.mentionedYou")}
           </span>
         ) : null}
 
@@ -97,6 +90,7 @@ export function TaskCard({
       </CardHeader>
 
       <CardContent className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <ActivityDot state={activity} />
         {isDone ? (
           <DoneChip />
         ) : (

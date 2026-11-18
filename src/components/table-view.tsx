@@ -3,7 +3,7 @@
 import * as React from "react";
 import { CheckIcon, LayoutListIcon, Trash2Icon } from "lucide-react";
 
-import { DueStamp, PriorityDot, StatusChip } from "@/components/chips";
+import { ActivityDot, DueStamp, PriorityDot, StatusChip } from "@/components/chips";
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
@@ -26,17 +26,17 @@ import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/dates";
 import { goalTitle, memberName, taskTitle } from "@/lib/locale-text";
 import { STATUS_META } from "@/lib/labels";
-import type { TaskActivityState } from "@/lib/task-activity";
+import type { ActivityMap } from "@/lib/task-activity";
 import type { Task } from "@/lib/types";
 
 export function TableView({
   filters,
   onOpenTask,
-  getActivity,
+  activity,
 }: {
   filters: TaskFilterOptions;
   onOpenTask: (taskId: string) => void;
-  getActivity?: (task: Task) => TaskActivityState;
+  activity?: ActivityMap;
 }) {
   const { locale, t, formatNumber } = useLocale();
   const { workspace, updateTask, deleteTask } = useWorkspace();
@@ -44,7 +44,7 @@ export function TableView({
 
   if (!workspace) return null;
 
-  const tasks = filterTasks(workspace, filters);
+  const tasks = filterTasks(workspace, filters, { activity });
   const selectedVisible = selected.filter((id) => tasks.some((task) => task.id === id));
   const allSelected = tasks.length > 0 && selectedVisible.length === tasks.length;
   const someSelected = selectedVisible.length > 0 && !allSelected;
@@ -167,26 +167,7 @@ export function TableView({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {(() => {
-                          const act = getActivity?.(task);
-                          if (act?.hasUnreadMention) {
-                            return (
-                              <span
-                                className="size-2 shrink-0 rounded-full bg-amber-500 animate-pulse"
-                                title={t("task.mentionedYou")}
-                              />
-                            );
-                          }
-                          if (act?.hasChanges) {
-                            return (
-                              <span
-                                className="size-2 shrink-0 rounded-full bg-primary animate-pulse"
-                                title={t("task.hasChanges")}
-                              />
-                            );
-                          }
-                          return null;
-                        })()}
+                        <ActivityDot state={activity?.[task.id]} />
                         <button
                           type="button"
                           onClick={(event) => {

@@ -3,18 +3,13 @@
 import * as React from "react";
 import {
   AlignLeftIcon,
-  AtSignIcon,
-  ImageIcon,
-  Loader2Icon,
   MessageSquareIcon,
-  PaperclipIcon,
-  SendIcon,
   Trash2Icon,
   UserRoundIcon,
-  XIcon,
 } from "lucide-react";
 
-import { CommentAttachments, FormattedCommentBody } from "@/components/comment-renderer";
+import { CommentComposer } from "@/components/comment-composer";
+import { CommentImages, CommentText } from "@/components/comment-content";
 import { DateField } from "@/components/date-field";
 import { EditableText } from "@/components/editable-text";
 import { MemberAvatar } from "@/components/member-avatar";
@@ -41,8 +36,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
-import { Kbd } from "@/components/ui/kbd";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -54,7 +47,6 @@ import {
 import { useWorkspace } from "@/components/workspace-provider";
 import { commentsForTask } from "@/lib/derived";
 import { formatDateTime, formatRelative } from "@/lib/dates";
-import { compressImageFile } from "@/lib/image-utils";
 import {
   commentBody,
   goalTitle,
@@ -63,8 +55,7 @@ import {
   taskDescription,
   taskTitle,
 } from "@/lib/locale-text";
-import type { Member, Task } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import type { Task } from "@/lib/types";
 
 export function TaskSheet({
   taskId,
@@ -376,13 +367,13 @@ function TaskSheetBody({
                           </Button>
                         ) : null}
                       </div>
-                      <FormattedCommentBody
+                      <CommentText
                         text={commentBody(locale, comment)}
                         members={members}
                         currentUser={currentUser}
                         isMine={isMine}
                       />
-                      <CommentAttachments attachments={comment.attachments} />
+                      <CommentImages attachments={comment.attachments} />
                     </div>
                   </div>
                 );
@@ -405,8 +396,6 @@ function TaskSheetBody({
                 return Boolean(payload);
               }}
               sendAs={t("task.sendAs", { name: memberName(locale, currentUser) })}
-              placeholder={t("task.commentPlaceholder")}
-              sendLabel={t("action.send")}
             />
           ) : (
             <Item variant="outline" size="sm" className="text-xs text-muted-foreground">
@@ -429,337 +418,5 @@ function TaskSheetBody({
         </span>
       </SheetFooter>
     </>
-  );
-}
-
-function CommentComposer({
-  onSend,
-  sendAs,
-  placeholder,
-  sendLabel,
-  currentUser,
-  members,
-}: {
-  onSend: (body: string, attachments?: string[]) => Promise<boolean>;
-  sendAs: string;
-  placeholder: string;
-  sendLabel: string;
-  currentUser?: Member | null;
-  members: Member[];
-}) {
-  const { locale, t } = useLocale();
-  const [draft, setDraft] = React.useState("");
-  const [attachments, setAttachments] = React.useState<string[]>([]);
-  const [uploading, setUploading] = React.useState(false);
-  const [sending, setSending] = React.useState(false);
-  const [isDragging, setIsDragging] = React.useState(false);
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Mention autocomplete state
-  const [mentionQuery, setMentionQuery] = React.useState<string | null>(null);
-  const [mentionIndex, setMentionIndex] = React.useState(0);
-  const [mentionAnchor, setMentionAnchor] = React.useState<{ start: number; end: number } | null>(null);
-
-  const checkMention = (text: string, cursorPos: number) => {
-    const textBefore = text.slice(0, cursorPos);
-    const match = textBefore.match(/@([\w\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]*)$/);
-    if (match) {
-      setMentionQuery(match[1].toLowerCase());
-      setMentionAnchor({ start: cursorPos - match[0].length, end: cursorPos });
-      setMentionIndex(0);
-    } else {
-      setMentionQuery(null);
-      setMentionAnchor(null);
-    }
-  };
-
-  const filteredMembers = React.useMemo(() => {
-    if (mentionQuery === null) return [];
-    const q = mentionQuery.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter(
-      (m) =>
-        m.name.toLowerCase().includes(q) ||
-        (m.nameEn && m.nameEn.toLowerCase().includes(q)) ||
-        (m.role && m.role.toLowerCase().includes(q)),
-    );
-  }, [members, mentionQuery]);
-
-  const insertMention = (member: Member) => {
-    if (!mentionAnchor || !textareaRef.current) return;
-    const name = locale === "en" && member.nameEn ? member.nameEn : member.name;
-    const insertion = `@${name} `;
-    const before = draft.slice(0, mentionAnchor.start);
-    const after = draft.slice(mentionAnchor.end);
-    const nextDraft = before + insertion + after;
-    setDraft(nextDraft);
-    setMentionQuery(null);
-    setMentionAnchor(null);
-
-    const newPos = mentionAnchor.start + insertion.length;
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(newPos, newPos);
-      }
-    }, 10);
-  };
-
-  const handleFiles = async (files: FileList | File[]) => {
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (imageFiles.length === 0) return;
-    setUploading(true);
-    try {
-      const compressedList = await Promise.all(imageFiles.map((f) => compressImageFile(f)));
-      setAttachments((prev) => [...prev, ...compressedList].slice(0, 6));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const submit = async () => {
-    const body = draft.trim();
-    if ((!body && attachments.length === 0) || sending || uploading) return;
-    setSending(true);
-    const ok = await onSend(body, attachments);
-    setSending(false);
-    if (ok) {
-      setDraft("");
-      setAttachments([]);
-      setMentionQuery(null);
-      setMentionAnchor(null);
-    }
-  };
-
-  return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setIsDragging(true);
-      }}
-      onDragLeave={(e) => {
-        e.preventDefault();
-        setIsDragging(false);
-      }}
-      onDrop={async (e) => {
-        e.preventDefault();
-        setIsDragging(false);
-        if (e.dataTransfer?.files?.length) {
-          await handleFiles(e.dataTransfer.files);
-        }
-      }}
-      className={cn(
-        "relative overflow-hidden rounded-xl border bg-card transition-all focus-within:border-ring",
-        isDragging && "border-primary ring-2 ring-primary/20 bg-primary/[0.03]",
-      )}
-    >
-      {/* منوی انتخاب هم‌تیمی برای منشن */}
-      {mentionQuery !== null && filteredMembers.length > 0 ? (
-        <div className="absolute inset-x-2 bottom-full z-50 mb-1 max-h-48 overflow-y-auto rounded-lg border bg-popover p-1 shadow-lg animate-in fade-in-0 zoom-in-95">
-          <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
-            {t("task.mentionHint")}
-          </div>
-          {filteredMembers.map((member, idx) => (
-            <button
-              key={member.id}
-              type="button"
-              onClick={() => insertMention(member)}
-              onMouseEnter={() => setMentionIndex(idx)}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-start transition-colors",
-                idx === mentionIndex
-                  ? "bg-accent text-accent-foreground"
-                  : "hover:bg-muted text-foreground",
-              )}
-            >
-              <MemberAvatar member={member} size="sm" />
-              <div className="min-w-0 flex-1 truncate">
-                <span className="font-medium">{memberName(locale, member)}</span>
-                {member.role ? (
-                  <span className="ms-1.5 text-[11px] text-muted-foreground">
-                    ({member.role})
-                  </span>
-                ) : null}
-              </div>
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {/* ورودی مخفی فایل تصویر */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={async (e) => {
-          if (e.target.files?.length) {
-            await handleFiles(e.target.files);
-            e.target.value = "";
-          }
-        }}
-      />
-
-      <Textarea
-        ref={textareaRef}
-        value={draft}
-        dir="auto"
-        onChange={(event) => {
-          setDraft(event.target.value);
-          checkMention(event.target.value, event.target.selectionStart || 0);
-        }}
-        onClick={(event) => {
-          checkMention(draft, (event.target as HTMLTextAreaElement).selectionStart || 0);
-        }}
-        onKeyUp={(event) => {
-          if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Escape") {
-            return;
-          }
-          checkMention(draft, (event.target as HTMLTextAreaElement).selectionStart || 0);
-        }}
-        onKeyDown={(event) => {
-          if (mentionQuery !== null && filteredMembers.length > 0) {
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              setMentionIndex((prev) => (prev + 1) % filteredMembers.length);
-              return;
-            }
-            if (event.key === "ArrowUp") {
-              event.preventDefault();
-              setMentionIndex((prev) => (prev - 1 + filteredMembers.length) % filteredMembers.length);
-              return;
-            }
-            if (event.key === "Enter" || event.key === "Tab") {
-              event.preventDefault();
-              if (filteredMembers[mentionIndex]) {
-                insertMention(filteredMembers[mentionIndex]);
-              }
-              return;
-            }
-            if (event.key === "Escape") {
-              event.preventDefault();
-              setMentionQuery(null);
-              return;
-            }
-          }
-
-          if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-            event.preventDefault();
-            void submit();
-          }
-        }}
-        onPaste={async (event) => {
-          const items = event.clipboardData?.items;
-          if (!items) return;
-          const imageFiles: File[] = [];
-          for (let i = 0; i < items.length; i++) {
-            if (items[i].type.startsWith("image/")) {
-              const file = items[i].getAsFile();
-              if (file) imageFiles.push(file);
-            }
-          }
-          if (imageFiles.length > 0) {
-            event.preventDefault();
-            await handleFiles(imageFiles);
-          }
-        }}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        rows={2}
-        maxLength={4000}
-        className="min-h-16 resize-none rounded-none border-0 bg-transparent p-3 text-sm shadow-none focus-visible:ring-0"
-      />
-
-      {/* نوار تصاویر پیوست‌شده قبل از ارسال */}
-      {attachments.length > 0 || uploading ? (
-        <div className="flex flex-wrap items-center gap-2 px-3 pb-2.5">
-          {attachments.map((src, index) => (
-            <div key={index} className="group relative size-14 overflow-hidden rounded-md border bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="پیوست" className="size-full object-cover" />
-              <button
-                type="button"
-                onClick={() => removeAttachment(index)}
-                aria-label={t("task.removeAttachment")}
-                className="absolute top-0.5 end-0.5 flex size-4 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-destructive"
-              >
-                <XIcon className="size-2.5" />
-              </button>
-            </div>
-          ))}
-
-          {uploading ? (
-            <div className="flex size-14 items-center justify-center rounded-md border border-dashed text-muted-foreground animate-pulse">
-              <Loader2Icon className="size-4 animate-spin" />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="flex items-center gap-1.5 border-t bg-muted/40 px-3 py-2">
-        {currentUser ? <MemberAvatar member={currentUser} size="sm" /> : null}
-        <span className="truncate text-xs text-muted-foreground">{sendAs}</span>
-
-        <div className="ms-auto flex items-center gap-1">
-          {/* دکمه منشن */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => {
-              const next = draft + (draft.endsWith(" ") || !draft ? "@" : " @");
-              setDraft(next);
-              setMentionQuery("");
-              textareaRef.current?.focus();
-            }}
-            title={t("task.mention")}
-            aria-label={t("task.mention")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <AtSignIcon className="size-4" />
-          </Button>
-
-          {/* دکمه پیوست تصویر */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => fileInputRef.current?.click()}
-            title={t("task.uploadImage")}
-            aria-label={t("task.uploadImage")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ImageIcon className="size-4" />
-          </Button>
-
-          <span
-            dir="ltr"
-            className="hidden items-center gap-1 text-[11px] text-muted-foreground sm:flex ms-1 me-2"
-          >
-            <Kbd>Ctrl</Kbd>
-            <span aria-hidden="true">+</span>
-            <Kbd>Enter</Kbd>
-          </span>
-
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => void submit()}
-            disabled={sending || uploading || (draft.trim().length === 0 && attachments.length === 0)}
-          >
-            <span>{sendLabel}</span>
-            <SendIcon className="rtl:rotate-180" data-icon="inline-end" />
-          </Button>
-        </div>
-      </div>
-    </div>
   );
 }

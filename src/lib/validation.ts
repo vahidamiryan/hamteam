@@ -1,4 +1,6 @@
 import { z } from "zod";
+
+import { MAX_ATTACHMENTS, MAX_ATTACHMENT_CHARS, isAttachmentSource } from "./image-utils";
 import { GOAL_STATUSES, PRIORITIES, TASK_STATUSES } from "./types";
 
 const title = (max: number, label: string) =>
@@ -46,8 +48,13 @@ export const commentCreateSchema = z
     body: z.string().trim().max(4000, "کامنت حداکثر ۴۰۰۰ کاراکتر است.").default(""),
     bodyEn: optionalText(4000),
     attachments: z
-      .array(z.string())
-      .max(6, "حداکثر ۶ تصویر هم‌زمان قابل پیوست است.")
+      .array(
+        z
+          .string()
+          .max(MAX_ATTACHMENT_CHARS, "حجم تصویر بیش از حد مجاز است.")
+          .refine(isAttachmentSource, "فرمت تصویر پیوست پشتیبانی نمی‌شود."),
+      )
+      .max(MAX_ATTACHMENTS, `حداکثر ${MAX_ATTACHMENTS} تصویر هم‌زمان قابل پیوست است.`)
       .optional(),
   })
   .refine(

@@ -363,9 +363,8 @@ export function demoWorkspace(now: Date = new Date()): Workspace {
       id: "cmt_3",
       taskId: "task_comments",
       authorId: "mem_sara",
-      body: "امکان منشن کردن عضو تیم را برای فاز بعد در نظر بگیریم، الان فقط گفت‌وگوی ساده کافی است.",
-      bodyEn:
-        "Let's consider @mentions next phase; a plain conversation is enough for now.",
+      body: "@سارا محمدی منشن هم‌تیمی‌ها اضافه شد؛ لطفاً روی موبایل هم یک بار امتحان کن.",
+      bodyEn: "@Sara Mohammadi mentions are in — please give it a try on mobile too.",
       createdAt: at(-2, 9),
     },
     {

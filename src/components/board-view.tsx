@@ -9,20 +9,20 @@ import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/components/workspace-provider";
 import { filterTasks, type TaskFilterOptions } from "@/lib/derived";
 import { STATUS_META, STATUS_ORDER } from "@/lib/labels";
-import type { TaskActivityState } from "@/lib/task-activity";
+import type { ActivityMap } from "@/lib/task-activity";
 import { cn } from "@/lib/utils";
-import type { Task, TaskStatus } from "@/lib/types";
+import type { TaskStatus } from "@/lib/types";
 
 export function BoardView({
   filters,
   onOpenTask,
   onAddTask,
-  getActivity,
+  activity,
 }: {
   filters: TaskFilterOptions;
   onOpenTask: (taskId: string) => void;
   onAddTask: (status: TaskStatus) => void;
-  getActivity?: (task: Task) => TaskActivityState;
+  activity?: ActivityMap;
 }) {
   const { t, formatNumber } = useLocale();
   const { workspace, updateTask } = useWorkspace();
@@ -33,7 +33,7 @@ export function BoardView({
 
   const columns = STATUS_ORDER.map((status) => ({
     status,
-    tasks: filterTasks(workspace, { ...filters, status }),
+    tasks: filterTasks(workspace, { ...filters, status }, { activity }),
   }));
 
   const move = (taskId: string, status: TaskStatus) => {
@@ -101,7 +101,7 @@ export function BoardView({
                   <TaskCard
                     key={task.id}
                     task={task}
-                    activity={getActivity?.(task)}
+                    activity={activity?.[task.id]}
                     dragging={draggingId === task.id}
                     onOpen={() => onOpenTask(task.id)}
                     onDragStart={(event) => {

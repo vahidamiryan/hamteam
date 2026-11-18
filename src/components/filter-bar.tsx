@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { BellIcon, CheckCheckIcon, SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { CheckCheckIcon, SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
 
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
@@ -29,11 +29,17 @@ import type { TaskFilterOptions } from "@/lib/derived";
 import { memberName } from "@/lib/locale-text";
 import { cn } from "@/lib/utils";
 
+/**
+ * نوار فیلتر: یک جست‌وجو و یک منو.
+ * همهٔ شرط‌ها (مسئول، تغییرات جدید، منشن‌ها، سررسید) داخل همان منو هستند تا
+ * نوار بالای برد به چند دکمهٔ موازی تبدیل نشود.
+ */
 export function FilterBar({
   filters,
   onChange,
   resultCount,
   unreadCount = 0,
+  mentionCount = 0,
   onMarkAllSeen,
   className,
 }: {
@@ -41,6 +47,7 @@ export function FilterBar({
   onChange: (next: TaskFilterOptions) => void;
   resultCount: number;
   unreadCount?: number;
+  mentionCount?: number;
   onMarkAllSeen?: () => void;
   className?: string;
 }) {
@@ -123,7 +130,7 @@ export function FilterBar({
             </span>
           ) : null}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-56">
+        <DropdownMenuContent align="start" className="min-w-60">
           <DropdownMenuGroup>
             <DropdownMenuLabel>{t("filter.assignee")}</DropdownMenuLabel>
             <DropdownMenuRadioGroup
@@ -148,30 +155,52 @@ export function FilterBar({
             </DropdownMenuRadioGroup>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuCheckboxItem
-            checked={Boolean(filters.onlyTracking)}
-            onCheckedChange={(checked) =>
-              onChange({ ...filters, onlyTracking: checked === true })
-            }
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{t("filter.activity")}</DropdownMenuLabel>
+            <DropdownMenuCheckboxItem
+              checked={Boolean(filters.onlyTracking)}
+              onCheckedChange={(checked) =>
+                onChange({ ...filters, onlyTracking: checked === true })
+              }
+            >
+              {t("filter.trackingOnly")}
+              {unreadCount > 0 ? (
+                <span className="ms-auto text-xs text-muted-foreground tabular-nums">
+                  {formatNumber(unreadCount)}
+                </span>
+              ) : null}
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={Boolean(filters.onlyMentioned)}
+              onCheckedChange={(checked) =>
+                onChange({ ...filters, onlyMentioned: checked === true })
+              }
+            >
+              {t("filter.onlyMentioned")}
+              {mentionCount > 0 ? (
+                <span className="ms-auto text-xs text-muted-foreground tabular-nums">
+                  {formatNumber(mentionCount)}
+                </span>
+              ) : null}
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={Boolean(filters.onlyOverdue)}
+              onCheckedChange={(checked) =>
+                onChange({ ...filters, onlyOverdue: checked === true })
+              }
+            >
+              {t("filter.onlyOverdue")}
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            disabled={unreadCount === 0}
+            onClick={() => onMarkAllSeen?.()}
+            className="gap-2"
           >
-            {t("filter.trackingOnly")}
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={Boolean(filters.onlyMentioned)}
-            onCheckedChange={(checked) =>
-              onChange({ ...filters, onlyMentioned: checked === true })
-            }
-          >
-            {t("filter.onlyMentioned")}
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={Boolean(filters.onlyOverdue)}
-            onCheckedChange={(checked) =>
-              onChange({ ...filters, onlyOverdue: checked === true })
-            }
-          >
-            {t("filter.onlyOverdue")}
-          </DropdownMenuCheckboxItem>
+            <CheckCheckIcon data-icon="inline-start" />
+            {t("task.markAllRead")}
+          </DropdownMenuItem>
           {hasFilters ? (
             <>
               <DropdownMenuSeparator />
@@ -180,49 +209,6 @@ export function FilterBar({
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {/* دکمه اختصاصی فیلتر تغییرات جدید و پیگیری */}
-      <Button
-        variant={filters.onlyTracking ? "default" : "outline"}
-        size="sm"
-        onClick={() => onChange({ ...filters, onlyTracking: !filters.onlyTracking })}
-        className={cn(
-          "h-8 gap-1.5 text-xs font-normal transition-all",
-          filters.onlyTracking
-            ? "bg-primary text-primary-foreground"
-            : unreadCount > 0
-              ? "border-primary/40 text-foreground hover:bg-primary/5"
-              : "text-muted-foreground",
-        )}
-      >
-        <BellIcon className={cn("size-3.5", unreadCount > 0 && "text-primary")} />
-        <span>{t("filter.trackingOnly")}</span>
-        {unreadCount > 0 ? (
-          <span
-            className={cn(
-              "rounded-full px-1.5 py-0.2 text-[10px] tabular-nums font-semibold",
-              filters.onlyTracking
-                ? "bg-primary-foreground/20 text-primary-foreground"
-                : "bg-primary/15 text-primary",
-            )}
-          >
-            {formatNumber(unreadCount)}
-          </span>
-        ) : null}
-      </Button>
-
-      {filters.onlyTracking && onMarkAllSeen && unreadCount > 0 ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onMarkAllSeen}
-          className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
-          title={t("task.markAllRead")}
-        >
-          <CheckCheckIcon className="size-3.5" />
-          <span className="hidden sm:inline">{t("task.markAllRead")}</span>
-        </Button>
-      ) : null}
 
       {hasFilters ? (
         <span className="text-xs text-muted-foreground tabular-nums">

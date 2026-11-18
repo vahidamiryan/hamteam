@@ -80,7 +80,15 @@ export type TaskFilterOptions = {
   onlyTracking?: boolean;
   /** فقط تسک‌هایی که کاربر در آن‌ها منشن شده است */
   onlyMentioned?: boolean;
-  activityMap?: Record<string, { hasChanges: boolean; hasUnreadMention: boolean }>;
+};
+
+/**
+ * داده‌های تکمیلی فیلتر که از وضعیت کاربر می‌آیند، نه از خود فیلترها.
+ * جدا نگه داشتنشان باعث می‌شود `filters` قابل ذخیره/اشتراک باشد و هر رندر
+ * یک شیء تازه به فیلتر تزریق نکند.
+ */
+export type TaskFilterExtras = {
+  activity?: Record<string, { hasChanges: boolean; hasUnreadMention: boolean }>;
 };
 
 function matchesSearch(task: Task, needle: string): boolean {
@@ -100,21 +108,19 @@ function matchesSearch(task: Task, needle: string): boolean {
 export function filterTasks(
   workspace: Workspace,
   options: TaskFilterOptions,
+  extras: TaskFilterExtras = {},
   now: Date = new Date(),
 ): Task[] {
   const needle = (options.search ?? "").trim().toLowerCase();
+  const activity = extras.activity;
   return sortTasks(
     workspace.tasks.filter((task) => {
       if (options.status && task.status !== options.status) return false;
       if (options.assigneeId && task.assigneeId !== options.assigneeId) return false;
       if (options.onlyOverdue && !isOverdue(task, now)) return false;
-      if (options.onlyTracking && options.activityMap) {
-        const act = options.activityMap[task.id];
-        if (!act?.hasChanges && !act?.hasUnreadMention) return false;
-      }
-      if (options.onlyMentioned && options.activityMap) {
-        const act = options.activityMap[task.id];
-        if (!act?.hasUnreadMention) return false;
+      if (options.onlyTracking && activity && !activity[task.id]?.hasChanges) return false;
+      if (options.onlyMentioned && activity && !activity[task.id]?.hasUnreadMention) {
+        return false;
       }
       return matchesSearch(task, needle);
     }),

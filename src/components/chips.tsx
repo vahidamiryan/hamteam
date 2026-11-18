@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useLocale } from "@/components/locale-provider";
 import { dueLabel, formatDate, formatDateShort } from "@/lib/dates";
 import { GOAL_STATUS_META, PRIORITY_META, STATUS_META } from "@/lib/labels";
+import type { TaskActivityState } from "@/lib/task-activity";
 import type { GoalStatus, Priority, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,34 @@ export function StatusChip({
       {withDot ? <span className={cn("size-1.5 rounded-full", meta.dot)} /> : null}
       {t(meta.labelKey)}
     </Badge>
+  );
+}
+
+/**
+ * نشانگر «دیده‌نشده»: فقط یک نقطهٔ کوچک بدون کادر و بدون انیمیشن.
+ * برای منشن از رنگ وضعیت «در انتظار» استفاده می‌شود تا با تأکید اصلی قاطی نشود.
+ */
+export function ActivityDot({
+  state,
+  className,
+}: {
+  state?: TaskActivityState;
+  className?: string;
+}) {
+  const { t } = useLocale();
+  if (!state?.hasChanges) return null;
+  const label = state.hasUnreadMention ? t("task.mentionedYou") : t("task.hasChanges");
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      className={cn(
+        "size-1.5 shrink-0 rounded-full",
+        state.hasUnreadMention ? "bg-status-pending" : "bg-primary",
+        className,
+      )}
+    />
   );
 }
 

@@ -44,8 +44,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useWorkspace } from "@/components/workspace-provider";
-import { commentsForTask } from "@/lib/derived";
+import {
+  useWorkspaceActions,
+  useWorkspaceIndex,
+  useWorkspaceState,
+} from "@/components/workspace-provider";
 import { formatDateTime, formatRelative } from "@/lib/dates";
 import {
   commentBody,
@@ -67,8 +70,8 @@ export function TaskSheet({
   onSeen?: (taskId: string) => void;
 }) {
   const { isRtl } = useLocale();
-  const { workspace } = useWorkspace();
-  const task = workspace?.tasks.find((item) => item.id === taskId) ?? null;
+  const index = useWorkspaceIndex();
+  const task = index?.task(taskId) ?? null;
 
   return (
     <Sheet open={Boolean(taskId)} onOpenChange={onOpenChange}>
@@ -99,14 +102,9 @@ function TaskSheetBody({
   onSeen?: (taskId: string) => void;
 }) {
   const { locale, t, formatNumber } = useLocale();
-  const {
-    workspace,
-    updateTask,
-    deleteTask,
-    addComment,
-    deleteComment,
-    currentUser,
-  } = useWorkspace();
+  const index = useWorkspaceIndex();
+  const { currentUser } = useWorkspaceState();
+  const { updateTask, deleteTask, addComment, deleteComment } = useWorkspaceActions();
 
   React.useEffect(() => {
     if (task?.id) {
@@ -114,13 +112,11 @@ function TaskSheetBody({
     }
   }, [task?.id, onSeen]);
 
-  if (!workspace) return null;
-
-  const members = workspace.members;
-  const goals = workspace.goals;
-  const assignee = members.find((member) => member.id === task.assigneeId) ?? null;
-  const goal = goals.find((item) => item.id === task.goalId) ?? null;
-  const comments = commentsForTask(workspace, task.id);
+  const members = index?.membersList ?? [];
+  const goals = index?.goalsList ?? [];
+  const assignee = index?.member(task.assigneeId) ?? null;
+  const goal = index?.goal(task.goalId) ?? null;
+  const comments = index?.comments(task.id) ?? [];
   const blocker = taskBlocker(locale, task);
 
   const patchTitle = (next: string) =>

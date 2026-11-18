@@ -20,8 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
-import { useWorkspace } from "@/components/workspace-provider";
-import { filterTasks, type TaskFilterOptions } from "@/lib/derived";
+import { useWorkspaceActions, useWorkspaceIndex } from "@/components/workspace-provider";
+import { TaskQuery, type TaskFilterOptions } from "@/lib/domain/task-query";
 import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/dates";
 import { goalTitle, memberName, taskTitle } from "@/lib/locale-text";
@@ -39,13 +39,22 @@ export function TableView({
   activity?: ActivityMap;
 }) {
   const { locale, t, formatNumber } = useLocale();
-  const { workspace, updateTask, deleteTask } = useWorkspace();
+  const index = useWorkspaceIndex();
+  const { updateTask, deleteTask } = useWorkspaceActions();
   const [selected, setSelected] = React.useState<string[]>([]);
 
-  if (!workspace) return null;
+  const tasks = React.useMemo(
+    () =>
+      index ? TaskQuery.from(filters, index, { activity }).select(index) : [],
+    [index, filters, activity],
+  );
 
-  const tasks = filterTasks(workspace, filters, { activity });
-  const selectedVisible = selected.filter((id) => tasks.some((task) => task.id === id));
+  const visibleIds = React.useMemo(
+    () => new Set(tasks.map((task) => task.id)),
+    [tasks],
+  );
+  const selectedVisible = selected.filter((id) => visibleIds.has(id));
+  const selectedSet = React.useMemo(() => new Set(selectedVisible), [selectedVisible]);
   const allSelected = tasks.length > 0 && selectedVisible.length === tasks.length;
   const someSelected = selectedVisible.length > 0 && !allSelected;
 
@@ -79,12 +88,7 @@ export function TableView({
     }
   };
 
-  const memberOf = (task: Task) =>
-    workspace.members.find((member) => member.id === task.assigneeId) ?? null;
-  const goalOf = (task: Task) =>
-    workspace.goals.find((goal) => goal.id === task.goalId) ?? null;
-  const commentCountOf = (task: Task) =>
-    workspace.comments.filter((comment) => comment.taskId === task.id).length;
+  if (!index) return null;
 
   return (
     <Card className="py-0">
@@ -145,10 +149,10 @@ export function TableView({
             </TableHeader>
             <TableBody>
               {tasks.map((task) => {
-                const assignee = memberOf(task);
-                const goal = goalOf(task);
-                const comments = commentCountOf(task);
-                const isSelected = selectedVisible.includes(task.id);
+                const assignee = index.member(task.assigneeId);
+                const goal = index.goal(task.goalId);
+                const comments = index.commentCount(task.id);
+                const isSelected = selectedSet.has(task.id);
                 return (
                   <TableRow
                     key={task.id}

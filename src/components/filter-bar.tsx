@@ -24,8 +24,8 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { useWorkspace } from "@/components/workspace-provider";
-import type { TaskFilterOptions } from "@/lib/derived";
+import { useWorkspaceIndex, useWorkspaceState } from "@/components/workspace-provider";
+import type { TaskFilterOptions } from "@/lib/domain/task-query";
 import { memberName } from "@/lib/locale-text";
 import { cn } from "@/lib/utils";
 
@@ -52,22 +52,16 @@ export function FilterBar({
   className?: string;
 }) {
   const { locale, t, formatNumber } = useLocale();
-  const { workspace, currentUser } = useWorkspace();
-  const [search, setSearch] = React.useState(filters.search ?? "");
+  const index = useWorkspaceIndex();
+  const { currentUserId } = useWorkspaceState();
 
-  // جست‌وجو با تأخیر کوتاه تا تایپ روان بماند.
-  React.useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (search !== (filters.search ?? "")) {
-        onChange({ ...filters, search });
-      }
-    }, 200);
-    return () => window.clearTimeout(timer);
-  }, [search, filters, onChange]);
+  // ورودی جست‌وجو کنترل‌شده و بدون state موازی است؛ کندی رندر با
+  // `useDeferredValue` در پوسته گرفته می‌شود، نه با تایمر.
+  const search = filters.search ?? "";
+  const setSearch = (value: string) => onChange({ ...filters, search: value });
 
-  const members = workspace?.members ?? [];
-  const selectedMember =
-    members.find((member) => member.id === filters.assigneeId) ?? null;
+  const members = index?.membersList ?? [];
+  const selectedMember = index?.member(filters.assigneeId) ?? null;
   const activeCount =
     (filters.assigneeId ? 1 : 0) +
     (filters.onlyOverdue ? 1 : 0) +
@@ -148,7 +142,7 @@ export function FilterBar({
                   <MemberAvatar member={member} size="sm" />
                   <span className="truncate">
                     {memberName(locale, member)}
-                    {member.id === currentUser?.id ? ` (${t("people.you")})` : ""}
+                    {member.id === currentUserId ? ` (${t("people.you")})` : ""}
                   </span>
                 </DropdownMenuRadioItem>
               ))}

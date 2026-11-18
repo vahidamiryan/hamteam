@@ -57,21 +57,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { useWorkspace } from "@/components/workspace-provider";
+import { useWorkspaceActions, useWorkspaceIndex } from "@/components/workspace-provider";
 import { formatDateShort, percentLabel } from "@/lib/dates";
-import { goalProgress, sortTasks } from "@/lib/derived";
+import { sortTasks } from "@/lib/derived";
 import { goalDescription, goalTitle, memberName } from "@/lib/locale-text";
 import type { Goal, GoalStatus } from "@/lib/types";
 
 export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void }) {
   const { locale, t, formatNumber } = useLocale();
-  const { workspace, updateGoal, deleteGoal } = useWorkspace();
+  const index = useWorkspaceIndex();
+  const { updateGoal, deleteGoal } = useWorkspaceActions();
   const [creating, setCreating] = React.useState(false);
   const [editing, setEditing] = React.useState<Goal | null>(null);
   const [removing, setRemoving] = React.useState<Goal | null>(null);
 
-  if (!workspace) return null;
-  const goals = workspace.goals;
+  if (!index) return null;
+  const goals = index.goalsList;
 
   return (
     <div className="flex flex-col gap-4">
@@ -84,12 +85,9 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           {goals.map((goal) => {
-            const progress = goalProgress(workspace, goal.id);
-            const owner =
-              workspace.members.find((member) => member.id === goal.ownerId) ?? null;
-            const goalTasks = sortTasks(
-              workspace.tasks.filter((task) => task.goalId === goal.id),
-            );
+            const progress = index.goalProgress(goal.id);
+            const owner = index.member(goal.ownerId);
+            const goalTasks = sortTasks(index.tasksForGoal(goal.id));
             const achieved = goal.status === "achieved";
 
             return (
@@ -281,7 +279,8 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
 
 function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
   const { t } = useLocale();
-  const { workspace, createGoal, updateGoal } = useWorkspace();
+  const index = useWorkspaceIndex();
+  const { createGoal, updateGoal } = useWorkspaceActions();
   const [title, setTitle] = React.useState(goal?.title ?? "");
   const [titleEn, setTitleEn] = React.useState(goal?.titleEn ?? "");
   const [description, setDescription] = React.useState(goal?.description ?? "");
@@ -293,7 +292,7 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
   const [status, setStatus] = React.useState<GoalStatus>(goal?.status ?? "active");
   const [saving, setSaving] = React.useState(false);
 
-  const members = workspace?.members ?? [];
+  const members = index?.membersList ?? [];
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

@@ -107,19 +107,24 @@ export function AppShell() {
   } = useTaskActivity(workspace, currentUser);
 
   const stats = workspace ? workspaceStats(workspace) : null;
-  const filtered = workspace ? filterTasks(workspace, filters, { activity: activityMap }) : [];
 
-  const openNewTask = (taskStatus: TaskStatus = "backlog") =>
-    setNewTask({
-      open: true,
-      status: taskStatus,
-      assigneeId: filters.assigneeId ?? null,
-    });
+  // فیلترها با تأخیر به نماها می‌رسند: تایپ در جست‌وجو فوری می‌ماند و
+  // محاسبهٔ سنگین فهرست، رندر ورودی را قفل نمی‌کند.
+  const deferredFilters = React.useDeferredValue(filters);
+  const filtered = workspace
+    ? filterTasks(workspace, deferredFilters, { activity: activityMap })
+    : [];
 
-  const showMemberTasks = (memberId: string) => {
+  const openNewTask = React.useCallback(
+    (taskStatus: TaskStatus = "backlog") =>
+      setNewTask({ open: true, status: taskStatus, assigneeId: filters.assigneeId ?? null }),
+    [filters.assigneeId],
+  );
+
+  const showMemberTasks = React.useCallback((memberId: string) => {
     setFilters({ search: "", assigneeId: memberId, onlyOverdue: false });
     setView("board");
-  };
+  }, []);
 
   const statItems = stats
     ? [
@@ -332,7 +337,7 @@ export function AppShell() {
 
             {view === "board" ? (
               <BoardView
-                filters={filters}
+                filters={deferredFilters}
                 onOpenTask={setOpenTaskId}
                 onAddTask={openNewTask}
                 activity={activityMap}
@@ -341,7 +346,7 @@ export function AppShell() {
 
             {view === "table" ? (
               <TableView
-                filters={filters}
+                filters={deferredFilters}
                 onOpenTask={setOpenTaskId}
                 activity={activityMap}
               />

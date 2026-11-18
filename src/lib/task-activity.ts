@@ -10,6 +10,7 @@ import {
   subscribeSeen,
   type SeenDoc,
 } from "./seen-store";
+import { indexOf, type WorkspaceIndex } from "./domain/workspace-index";
 import { isUserMentioned } from "./mentions";
 import type { Member, Task, Workspace } from "./types";
 
@@ -28,9 +29,9 @@ const IDLE: TaskActivityState = {
   unreadCommentsCount: 0,
 };
 
-/** وضعیت یک تسک را از سند «دیده‌شده» و فضای کاری می‌سازد. */
+/** وضعیت یک تسک را از سند «دیده‌شده» و ایندکس فضای کاری می‌سازد. */
 export function activityForTask(
-  workspace: Workspace,
+  index: WorkspaceIndex,
   task: Task,
   user: Member | null,
   doc: SeenDoc | null,
@@ -39,12 +40,11 @@ export function activityForTask(
   const since = doc?.seen[task.id] ?? doc?.baseline ?? null;
   if (!since) return IDLE;
 
-  const unread = workspace.comments.filter(
-    (comment) =>
-      comment.taskId === task.id &&
-      comment.authorId !== user.id &&
-      comment.createdAt > since,
-  );
+  const unread = index
+    .comments(task.id)
+    .filter(
+      (comment) => comment.authorId !== user.id && comment.createdAt > since,
+    );
   const hasUnreadMention = unread.some(
     (comment) => isUserMentioned(comment.body, user) || isUserMentioned(comment.bodyEn, user),
   );
@@ -80,9 +80,10 @@ export function useTaskActivity(workspace: Workspace | null, currentUser: Member
 
   const activityMap = React.useMemo<ActivityMap>(() => {
     if (!workspace || !currentUser) return {};
+    const index = indexOf(workspace);
     const map: ActivityMap = {};
     for (const task of workspace.tasks) {
-      map[task.id] = activityForTask(workspace, task, currentUser, doc);
+      map[task.id] = activityForTask(index, task, currentUser, doc);
     }
     return map;
   }, [workspace, currentUser, doc]);

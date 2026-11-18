@@ -13,37 +13,38 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useWorkspace } from "@/components/workspace-provider";
 import { goalTitle, memberName, taskBlocker, taskTitle } from "@/lib/locale-text";
 import type { TaskActivityState } from "@/lib/task-activity";
 import { cn } from "@/lib/utils";
-import type { Task } from "@/lib/types";
+import type { Goal, Member, Task } from "@/lib/types";
 
-export function TaskCard({
+type TaskCardProps = {
+  task: Task;
+  /** عضو، هدف و شمار گفت‌وگو از ایندکس فضای کاری می‌آیند تا کارت جست‌وجو نکند. */
+  assignee?: Member | null;
+  goal?: Goal | null;
+  commentCount?: number;
+  onOpen: (taskId: string) => void;
+  onDragStart?: (event: React.DragEvent<HTMLElement>, taskId: string) => void;
+  onDragEnd?: () => void;
+  dragging?: boolean;
+  activity?: TaskActivityState;
+  className?: string;
+};
+
+function TaskCardView({
   task,
+  assignee = null,
+  goal = null,
+  commentCount = 0,
   onOpen,
   onDragStart,
   onDragEnd,
   dragging,
   activity,
   className,
-}: {
-  task: Task;
-  onOpen: () => void;
-  onDragStart?: (event: React.DragEvent<HTMLElement>) => void;
-  onDragEnd?: () => void;
-  dragging?: boolean;
-  activity?: TaskActivityState;
-  className?: string;
-}) {
+}: TaskCardProps) {
   const { locale, t, formatNumber } = useLocale();
-  const { workspace } = useWorkspace();
-
-  const assignee =
-    workspace?.members.find((member) => member.id === task.assigneeId) ?? null;
-  const goal = workspace?.goals.find((item) => item.id === task.goalId) ?? null;
-  const commentCount =
-    workspace?.comments.filter((comment) => comment.taskId === task.id).length ?? 0;
   const blocker = taskBlocker(locale, task);
   const isDone = task.status === "done";
 
@@ -51,13 +52,13 @@ export function TaskCard({
     <Card
       size="sm"
       draggable
-      onDragStart={onDragStart}
+      onDragStart={onDragStart ? (event) => onDragStart(event, task.id) : undefined}
       onDragEnd={onDragEnd}
-      onClick={onOpen}
+      onClick={() => onOpen(task.id)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          onOpen();
+          onOpen(task.id);
         }
       }}
       role="button"
@@ -122,3 +123,25 @@ export function TaskCard({
     </Card>
   );
 }
+
+/**
+ * مقایسهٔ دستی: بوستهٔ داده هر تغییر یک شیء تازه برای همهٔ تسک‌ها می‌سازد، ولی
+ * کارت فقط وقتی باید دوباره رندر شود که تسکش یا نشانگرهایش عوض شده باشد.
+ */
+function sameCard(a: TaskCardProps, b: TaskCardProps): boolean {
+  return (
+    a.task === b.task &&
+    a.assignee === b.assignee &&
+    a.goal === b.goal &&
+    a.commentCount === b.commentCount &&
+    a.dragging === b.dragging &&
+    a.onOpen === b.onOpen &&
+    a.onDragStart === b.onDragStart &&
+    a.onDragEnd === b.onDragEnd &&
+    a.className === b.className &&
+    a.activity?.hasChanges === b.activity?.hasChanges &&
+    a.activity?.hasUnreadMention === b.activity?.hasUnreadMention
+  );
+}
+
+export const TaskCard = React.memo(TaskCardView, sameCard);

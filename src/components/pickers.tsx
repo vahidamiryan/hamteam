@@ -235,7 +235,7 @@ export function GoalPicker({
   className,
 }: {
   value: string | null;
-  goals: Goal[];
+  goals: readonly Goal[];
   onChange: (value: string | null) => void;
   className?: string;
 }) {
@@ -266,7 +266,7 @@ export function AssigneePicker({
   allowEmpty = true,
 }: {
   value: string | null;
-  members: Member[];
+  members: readonly Member[];
   onChange: (value: string | null) => void;
   className?: string;
   allowEmpty?: boolean;

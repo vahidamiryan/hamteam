@@ -4,9 +4,16 @@ import * as React from "react";
 import { useLocale } from "@/components/locale-provider";
 import { toast } from "@/components/ui/toast";
 
-import { api, type WorkspacePayload } from "@/lib/api-client";
-import { SUPABASE_ENABLED, getSupabaseClient } from "@/lib/supabase-client";
-import type { Member, StorageInfo, Task, Workspace } from "@/lib/types";
+import { api } from "@/lib/api-client";
+import type { MessageKey } from "@/lib/i18n";
+import { indexOf, type WorkspaceIndex } from "@/lib/domain/workspace-index";
+import { SupabaseRealtimeLink } from "@/lib/realtime";
+import type { Member, StorageInfo, Workspace } from "@/lib/types";
+import {
+  CURRENT_USER_KEY,
+  WorkspaceStore,
+  type WorkspaceStatus,
+} from "@/lib/workspace-store";
 import type {
   GoalCreateInput,
   GoalUpdateInput,
@@ -15,374 +22,182 @@ import type {
   TaskCreateInput,
   TaskUpdateInput,
 } from "@/lib/validation";
+import type { RealtimeStatus } from "@/lib/realtime";
 
-const CURRENT_USER_KEY = "hamteam:current-member";
-
-type MutateOptions = {
-  /** تغییر خوش‌بینانه روی نسخه‌ی محلی، قبل از پاسخ سرور. */
-  optimistic?: (workspace: Workspace) => void;
-  request: () => Promise<WorkspacePayload>;
-  success?: string;
+/** دسترسی به «من کدام عضو هستم» از مرورگر. */
+const browserIdentity = {
+  read: () =>
+    typeof window === "undefined" ? null : window.localStorage.getItem(CURRENT_USER_KEY),
+  write: (memberId: string) => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(CURRENT_USER_KEY, memberId);
+    }
+  },
 };
 
-type WorkspaceContextValue = {
-  workspace: Workspace | null;
-  storage: StorageInfo | null;
-  status: "loading" | "ready" | "error";
-  realtimeStatus: "connected" | "connecting" | "offline";
-  error: string | null;
-  currentUser: Member | null;
+export type WorkspaceActions = {
   setCurrentUserId: (memberId: string) => void;
   refresh: () => Promise<void>;
-  mutate: (options: MutateOptions) => Promise<WorkspacePayload | null>;
-  createTask: (input: TaskCreateInput) => Promise<WorkspacePayload | null>;
+  createTask: (input: TaskCreateInput) => Promise<unknown>;
   updateTask: (
     taskId: string,
     input: TaskUpdateInput,
-    options?: { success?: string },
-  ) => Promise<WorkspacePayload | null>;
-  deleteTask: (taskId: string) => Promise<WorkspacePayload | null>;
+    options?: { success?: MessageKey },
+  ) => Promise<unknown>;
+  deleteTask: (taskId: string) => Promise<unknown>;
   addComment: (
     taskId: string,
     body: string,
     bodyEn?: string,
     attachments?: string[],
-  ) => Promise<WorkspacePayload | null>;
-  deleteComment: (commentId: string) => Promise<WorkspacePayload | null>;
-  createMember: (input: MemberCreateInput) => Promise<WorkspacePayload | null>;
-  updateMember: (
-    memberId: string,
-    input: MemberUpdateInput,
-  ) => Promise<WorkspacePayload | null>;
-  deleteMember: (memberId: string) => Promise<WorkspacePayload | null>;
-  createGoal: (input: GoalCreateInput) => Promise<WorkspacePayload | null>;
-  updateGoal: (
-    goalId: string,
-    input: GoalUpdateInput,
-  ) => Promise<WorkspacePayload | null>;
-  deleteGoal: (goalId: string) => Promise<WorkspacePayload | null>;
-  resetDemo: () => Promise<WorkspacePayload | null>;
+  ) => Promise<unknown>;
+  deleteComment: (commentId: string) => Promise<unknown>;
+  createMember: (input: MemberCreateInput) => Promise<unknown>;
+  updateMember: (memberId: string, input: MemberUpdateInput) => Promise<unknown>;
+  deleteMember: (memberId: string) => Promise<unknown>;
+  createGoal: (input: GoalCreateInput) => Promise<unknown>;
+  updateGoal: (goalId: string, input: GoalUpdateInput) => Promise<unknown>;
+  deleteGoal: (goalId: string) => Promise<unknown>;
+  resetDemo: () => Promise<unknown>;
 };
 
-const WorkspaceContext = React.createContext<WorkspaceContextValue | null>(null);
+export type WorkspaceState = {
+  workspace: Workspace | null;
+  storage: StorageInfo | null;
+  status: WorkspaceStatus;
+  error: string | null;
+  realtimeStatus: RealtimeStatus;
+  currentUser: Member | null;
+  currentUserId: string | null;
+  index: WorkspaceIndex | null;
+};
 
-function applyOptimisticTaskPatch(
-  workspace: Workspace,
-  taskId: string,
-  patch: TaskUpdateInput,
-) {
-  const task = workspace.tasks.find((item) => item.id === taskId);
-  if (!task) return;
-  const now = new Date().toISOString();
+const ActionsContext = React.createContext<WorkspaceActions | null>(null);
+const StateContext = React.createContext<WorkspaceState | null>(null);
 
-  if (patch.title !== undefined) task.title = patch.title;
-  if (patch.titleEn !== undefined) task.titleEn = patch.titleEn || undefined;
-  if (patch.description !== undefined) task.description = patch.description;
-  if (patch.descriptionEn !== undefined) {
-    task.descriptionEn = patch.descriptionEn || undefined;
-  }
-  if (patch.priority !== undefined) task.priority = patch.priority;
-  if (patch.assigneeId !== undefined) task.assigneeId = patch.assigneeId;
-  if (patch.goalId !== undefined) task.goalId = patch.goalId;
-  if (patch.dueDate !== undefined) task.dueDate = patch.dueDate;
-  if (patch.blockedReason !== undefined) {
-    task.blockedReason = patch.blockedReason?.trim() || null;
-  }
-  if (patch.blockedReasonEn !== undefined) {
-    task.blockedReasonEn = patch.blockedReasonEn || undefined;
-  }
-  if (patch.status !== undefined && patch.status !== task.status) {
-    task.status = patch.status;
-    task.completedAt = patch.status === "done" ? now : null;
-    if (patch.status !== "blocked" && patch.blockedReason === undefined) {
-      task.blockedReason = null;
-    }
-  }
-  task.updatedAt = now;
-}
+const EMPTY_STATE: WorkspaceState = {
+  workspace: null,
+  storage: null,
+  status: "loading",
+  error: null,
+  realtimeStatus: "offline",
+  currentUser: null,
+  currentUserId: null,
+  index: null,
+};
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { t } = useLocale();
-  const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
-  const [storage, setStorage] = React.useState<StorageInfo | null>(null);
-  const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
-  const [error, setError] = React.useState<string | null>(null);
-  const [currentUserId, setCurrentUserIdState] = React.useState<string | null>(null);
-  const [realtimeStatus, setRealtimeStatus] = React.useState<
-    "connected" | "connecting" | "offline"
-  >(() => (SUPABASE_ENABLED ? "connecting" : "offline"));
 
-  // بارگذاری اولیه: کاربر فعال از مرورگر بازیابی می‌شود و سپس فضای کاری خوانده می‌شود.
-  React.useEffect(() => {
-    let active = true;
-
-    async function bootstrap() {
-      const stored = window.localStorage.getItem(CURRENT_USER_KEY);
-      try {
-        const payload = await api.workspace();
-        if (!active) return;
-        const fallback = payload.data.members[0]?.id ?? null;
-        const known = payload.data.members.some((member) => member.id === stored)
-          ? stored
-          : fallback;
-        setWorkspace(payload.data);
-        setStorage(payload.storage);
-        setCurrentUserIdState(known);
-        setError(null);
-        setStatus("ready");
-        if (known) window.localStorage.setItem(CURRENT_USER_KEY, known);
-      } catch (cause) {
-        if (!active) return;
-        setError(cause instanceof Error ? cause.message : t("toast.error"));
-        setStatus("error");
-      }
-    }
-
-    void bootstrap();
-    return () => {
-      active = false;
-    };
-  }, [t]);
-
-  // همگام‌سازی زنده از طریق Supabase Realtime WebSocket
-  React.useEffect(() => {
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
-
-    const channel = supabase
-      .channel("hamteam:workspace-doc")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "workspace_doc",
-        },
-        (payload) => {
-          const newDoc = payload.new as { data?: Workspace; version?: number } | undefined;
-          if (newDoc?.data && typeof newDoc.data.version === "number") {
-            setWorkspace((current) => {
-              if (!current || newDoc.data!.version >= current.version) {
-                return newDoc.data!;
-              }
-              return current;
-            });
-          }
-        },
-      )
-      .subscribe((subStatus) => {
-        if (subStatus === "SUBSCRIBED") {
-          setRealtimeStatus("connected");
-        } else if (subStatus === "CLOSED" || subStatus === "CHANNEL_ERROR") {
-          setRealtimeStatus("offline");
-        } else {
-          setRealtimeStatus("connecting");
-        }
-      });
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const refresh = React.useCallback(async () => {
-    try {
-      const payload = await api.workspace();
-      setWorkspace(payload.data);
-      setStorage(payload.storage);
-      setError(null);
-      setStatus("ready");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t("toast.error"));
-      setStatus("error");
-    }
-  }, [t]);
-
-  const setCurrentUserId = React.useCallback((memberId: string) => {
-    setCurrentUserIdState(memberId);
-    window.localStorage.setItem(CURRENT_USER_KEY, memberId);
-  }, []);
-
-  const mutate = React.useCallback(
-    async ({ optimistic, request, success }: MutateOptions) => {
-      if (optimistic) {
-        setWorkspace((current) => {
-          if (!current) return current;
-          const draft = structuredClone(current);
-          optimistic(draft);
-          return draft;
-        });
-      }
-      try {
-        const payload = await request();
-        setWorkspace(payload.data);
-        setStorage(payload.storage);
-        if (success) toast.add({ title: success, type: "success" });
-        return payload;
-      } catch (cause) {
-        toast.add({
-          title: t("toast.error", {
-            message: cause instanceof Error ? cause.message : "",
-          }),
-          type: "error",
-        });
-        // وضعیت محلی را با واقعیت سرور هم‌تراز می‌کنیم.
-        await refresh();
-        return null;
-      }
-    },
-    [refresh, t],
+  const [store] = React.useState(
+    () =>
+      new WorkspaceStore({
+        api,
+        realtime: new SupabaseRealtimeLink(),
+        identity: browserIdentity,
+      }),
   );
 
-  // همگام‌سازی خودکار در زمان بازگشت به تب مرورگر
+  const snapshot = React.useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getServerSnapshot,
+  );
+
+  React.useEffect(() => store.start(), [store]);
+
+  // رویدادهای استور همین‌جا ترجمه و به توست تبدیل می‌شوند (استور فارسی نمی‌داند).
+  const notice = snapshot.notice;
   React.useEffect(() => {
-    const handleSync = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        void refresh();
-      }
-    };
-    window.addEventListener("focus", handleSync);
-    document.addEventListener("visibilitychange", handleSync);
-    return () => {
-      window.removeEventListener("focus", handleSync);
-      document.removeEventListener("visibilitychange", handleSync);
-    };
-  }, [refresh]);
+    if (!notice) return;
+    const { event } = notice;
+    if (event.type === "noMember") {
+      toast.add({ title: t("toast.noMember"), type: "error" });
+    } else if (event.type === "error") {
+      toast.add({ title: t("toast.error", { message: event.message }), type: "error" });
+    } else {
+      toast.add({ title: t(event.key, event.values), type: "success" });
+    }
+  }, [notice, t]);
 
-  const value = React.useMemo<WorkspaceContextValue>(() => {
-    // اگر عضو انتخاب‌شده حذف شده باشد، اولین عضو تیم به‌عنوان «من» در نظر گرفته می‌شود.
+  const actions = React.useMemo<WorkspaceActions>(
+    () => ({
+      setCurrentUserId: (memberId) => store.setCurrentUserId(memberId),
+      refresh: () => store.refresh(),
+      createTask: (input) => store.createTask(input),
+      updateTask: (taskId, input, options) => store.updateTask(taskId, input, options),
+      deleteTask: (taskId) => store.deleteTask(taskId),
+      addComment: (taskId, body, bodyEn, attachments) =>
+        store.addComment(taskId, body, bodyEn, attachments),
+      deleteComment: (commentId) => store.deleteComment(commentId),
+      createMember: (input) => store.createMember(input),
+      updateMember: (memberId, input) => store.updateMember(memberId, input),
+      deleteMember: (memberId) => store.deleteMember(memberId),
+      createGoal: (input) => store.createGoal(input),
+      updateGoal: (goalId, input) => store.updateGoal(goalId, input),
+      deleteGoal: (goalId) => store.deleteGoal(goalId),
+      resetDemo: () => store.resetDemo(),
+    }),
+    [store],
+  );
+
+  const state = React.useMemo<WorkspaceState>(() => {
+    if (!snapshot.workspace) {
+      return {
+        ...EMPTY_STATE,
+        storage: snapshot.storage,
+        status: snapshot.status,
+        error: snapshot.error,
+        realtimeStatus: snapshot.realtimeStatus,
+        currentUserId: snapshot.currentUserId,
+      };
+    }
+    const index = indexOf(snapshot.workspace);
     const currentUser =
-      workspace?.members.find((member) => member.id === currentUserId) ??
-      workspace?.members[0] ??
-      null;
-    const actorId = currentUser?.id ?? null;
-
+      index.member(snapshot.currentUserId) ?? snapshot.workspace.members[0] ?? null;
     return {
-      workspace,
-      storage,
-      status,
-      realtimeStatus,
-      error,
+      workspace: snapshot.workspace,
+      storage: snapshot.storage,
+      status: snapshot.status,
+      error: snapshot.error,
+      realtimeStatus: snapshot.realtimeStatus,
       currentUser,
-      setCurrentUserId,
-      refresh,
-      mutate,
-
-      createTask: (input) =>
-        mutate({ request: () => api.createTask(input), success: t("toast.taskCreated") }),
-
-      updateTask: (taskId, input, options) =>
-        mutate({
-          optimistic: (draft) => applyOptimisticTaskPatch(draft, taskId, input),
-          request: () => api.updateTask(taskId, input),
-          success: options?.success,
-        }),
-
-      deleteTask: (taskId) =>
-        mutate({
-          optimistic: (draft) => {
-            draft.tasks = draft.tasks.filter((task) => task.id !== taskId);
-            draft.comments = draft.comments.filter(
-              (comment) => comment.taskId !== taskId,
-            );
-          },
-          request: () => api.deleteTask(taskId),
-          success: t("toast.taskDeleted"),
-        }),
-
-      addComment: (taskId, body, bodyEn, attachments) => {
-        if (!actorId) {
-          toast.add({ title: t("toast.noMember"), type: "error" });
-          return Promise.resolve(null);
-        }
-        return mutate({
-          request: () =>
-            api.addComment(taskId, {
-              authorId: actorId,
-              body,
-              bodyEn,
-              attachments,
-            }),
-        });
-      },
-
-      deleteComment: (commentId) =>
-        mutate({
-          optimistic: (draft) => {
-            draft.comments = draft.comments.filter(
-              (comment) => comment.id !== commentId,
-            );
-          },
-          request: () => api.deleteComment(commentId),
-        }),
-
-      createMember: (input) =>
-        mutate({ request: () => api.createMember(input), success: t("toast.memberCreated") }),
-
-      updateMember: (memberId, input) =>
-        mutate({
-          request: () => api.updateMember(memberId, input),
-          success: t("toast.memberUpdated"),
-        }),
-
-      deleteMember: (memberId) =>
-        mutate({
-          optimistic: (draft) => {
-            draft.members = draft.members.filter((member) => member.id !== memberId);
-            for (const task of draft.tasks) {
-              if (task.assigneeId === memberId) task.assigneeId = null;
-            }
-            for (const goal of draft.goals) {
-              if (goal.ownerId === memberId) goal.ownerId = null;
-            }
-          },
-          request: () => api.deleteMember(memberId),
-          success: t("toast.memberDeleted"),
-        }),
-
-      createGoal: (input) =>
-        mutate({ request: () => api.createGoal(input), success: t("toast.goalCreated") }),
-
-      updateGoal: (goalId, input) =>
-        mutate({ request: () => api.updateGoal(goalId, input), success: t("toast.goalUpdated") }),
-
-      deleteGoal: (goalId) =>
-        mutate({
-          optimistic: (draft) => {
-            draft.goals = draft.goals.filter((goal) => goal.id !== goalId);
-            for (const task of draft.tasks) {
-              if (task.goalId === goalId) task.goalId = null;
-            }
-          },
-          request: () => api.deleteGoal(goalId),
-          success: t("toast.goalDeleted"),
-        }),
-
-      resetDemo: () =>
-        mutate({ request: () => api.reset(), success: t("toast.reset") }),
+      currentUserId: currentUser?.id ?? null,
+      index,
     };
-  }, [
-    workspace,
-    storage,
-    status,
-    realtimeStatus,
-    error,
-    currentUserId,
-    setCurrentUserId,
-    refresh,
-    mutate,
-    t,
-  ]);
+  }, [snapshot]);
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  return (
+    <ActionsContext.Provider value={actions}>
+      <StateContext.Provider value={state}>{children}</StateContext.Provider>
+    </ActionsContext.Provider>
+  );
 }
 
-export function useWorkspace(): WorkspaceContextValue {
-  const context = React.useContext(WorkspaceContext);
-  if (!context) {
-    throw new Error("useWorkspace باید داخل WorkspaceProvider استفاده شود.");
-  }
-  return context;
+function useWorkspaceState(): WorkspaceState {
+  return React.useContext(StateContext) ?? EMPTY_STATE;
 }
 
-export type { Task };
+function useWorkspaceActions(): WorkspaceActions {
+  const actions = React.useContext(ActionsContext);
+  if (!actions) throw new Error("useWorkspace باید داخل WorkspaceProvider استفاده شود.");
+  return actions;
+}
+
+/** API عمومی: داده + اعمال‌ها، مثل قبل برای همهٔ کامپوننت‌ها. */
+export function useWorkspace() {
+  const state = useWorkspaceState();
+  const actions = useWorkspaceActions();
+  return React.useMemo(() => ({ ...state, ...actions }), [state, actions]);
+}
+
+/** فقط وضعیت؛ بدون اعمال‌ها. */
+export { useWorkspaceState };
+
+/** فقط ایندکس؛ برای کامپوننت‌هایی که به اعمال‌ها کاری ندارند. */
+export function useWorkspaceIndex(): WorkspaceIndex | null {
+  return useWorkspaceState().index;
+}
+
+/** فقط اعمال‌ها؛ شناسهٔ پایدار، پس با تغییر داده‌ها رندر دوباره نمی‌شود. */
+export { useWorkspaceActions };

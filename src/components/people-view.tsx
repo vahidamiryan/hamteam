@@ -52,10 +52,15 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useWorkspace } from "@/components/workspace-provider";
+import {
+  useWorkspaceActions,
+  useWorkspaceIndex,
+  useWorkspaceState,
+} from "@/components/workspace-provider";
 import { AVATAR_OPTIONS, avatarSrc, randomAvatarIndex } from "@/lib/avatars";
 import { percentLabel } from "@/lib/dates";
-import { isOpen, memberStats, sortTasks } from "@/lib/derived";
+import { isOpen } from "@/lib/domain/workspace-index";
+import { sortTasks } from "@/lib/derived";
 import { memberName, memberRole } from "@/lib/locale-text";
 import type { Member } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -68,13 +73,15 @@ export function PeopleView({
   onShowTasks: (memberId: string) => void;
 }) {
   const { locale, t, formatNumber } = useLocale();
-  const { workspace, currentUser, setCurrentUserId, deleteMember } = useWorkspace();
+  const index = useWorkspaceIndex();
+  const { currentUser } = useWorkspaceState();
+  const { setCurrentUserId, deleteMember } = useWorkspaceActions();
   const [editing, setEditing] = React.useState<Member | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [removing, setRemoving] = React.useState<Member | null>(null);
 
-  if (!workspace) return null;
-  const members = workspace.members;
+  if (!index) return null;
+  const members = index.membersList;
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,11 +94,9 @@ export function PeopleView({
 
       <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {members.map((member) => {
-          const stats = memberStats(workspace, member.id);
+          const stats = index.memberStats(member.id);
           const openTasks = sortTasks(
-            workspace.tasks.filter(
-              (task) => task.assigneeId === member.id && isOpen(task),
-            ),
+            index.tasksForMember(member.id).filter(isOpen),
           ).slice(0, 3);
           const isMe = currentUser?.id === member.id;
           const percent =
@@ -291,7 +296,7 @@ export function PeopleView({
 
 function MemberForm({ member, onDone }: { member: Member | null; onDone: () => void }) {
   const { t } = useLocale();
-  const { createMember, updateMember } = useWorkspace();
+  const { createMember, updateMember } = useWorkspaceActions();
   const [name, setName] = React.useState(member?.name ?? "");
   const [nameEn, setNameEn] = React.useState(member?.nameEn ?? "");
   const [role, setRole] = React.useState(member?.role ?? "");

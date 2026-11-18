@@ -35,7 +35,7 @@ export function CommentText({
   isMine,
 }: {
   text: string;
-  members: Member[];
+  members: readonly Member[];
   currentUser: Member | null;
   isMine?: boolean;
 }) {

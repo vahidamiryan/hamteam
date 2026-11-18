@@ -22,7 +22,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useWorkspace } from "@/components/workspace-provider";
+import { useWorkspaceActions, useWorkspaceIndex } from "@/components/workspace-provider";
 import { STATUS_META, STATUS_ORDER } from "@/lib/labels";
 import type { Priority, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -72,7 +72,8 @@ function TaskForm({
   onDone: () => void;
 }) {
   const { t } = useLocale();
-  const { workspace, createTask } = useWorkspace();
+  const index = useWorkspaceIndex();
+  const { createTask } = useWorkspaceActions();
 
   const [title, setTitle] = React.useState("");
   const [titleEn, setTitleEn] = React.useState("");
@@ -84,8 +85,8 @@ function TaskForm({
   const [dueDate, setDueDate] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
 
-  const members = workspace?.members ?? [];
-  const goals = workspace?.goals ?? [];
+  const members = index?.membersList ?? [];
+  const goals = index?.goalsList ?? [];
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();

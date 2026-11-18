@@ -33,7 +33,7 @@ export function CommentComposer({
   onSend,
 }: {
   currentUser: Member;
-  members: Member[];
+  members: readonly Member[];
   sendAs: string;
   onSend: (body: string, attachments: string[]) => Promise<boolean>;
 }) {

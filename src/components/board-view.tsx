@@ -6,8 +6,8 @@ import { PlusIcon } from "lucide-react";
 import { useLocale } from "@/components/locale-provider";
 import { TaskCard } from "@/components/task-card";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "@/components/workspace-provider";
-import { filterTasks, type TaskFilterOptions } from "@/lib/derived";
+import { useWorkspaceActions, useWorkspaceIndex } from "@/components/workspace-provider";
+import { TaskQuery, type TaskFilterOptions } from "@/lib/domain/task-query";
 import { STATUS_META, STATUS_ORDER } from "@/lib/labels";
 import type { ActivityMap } from "@/lib/task-activity";
 import { cn } from "@/lib/utils";
@@ -25,22 +25,44 @@ export function BoardView({
   activity?: ActivityMap;
 }) {
   const { t, formatNumber } = useLocale();
-  const { workspace, updateTask } = useWorkspace();
+  const index = useWorkspaceIndex();
+  const { updateTask } = useWorkspaceActions();
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   const [dropTarget, setDropTarget] = React.useState<TaskStatus | null>(null);
 
-  if (!workspace) return null;
+  // ستون‌ها فقط وقتی فیلتر، داده یا وضعیت فعالیت تغییر کند دوباره محاسبه می‌شوند.
+  const columns = React.useMemo(() => {
+    if (!index) return [];
+    return STATUS_ORDER.map((status) => ({
+      status,
+      tasks: TaskQuery.from({ ...filters, status }, index, { activity }).select(index),
+    }));
+  }, [index, filters, activity]);
 
-  const columns = STATUS_ORDER.map((status) => ({
-    status,
-    tasks: filterTasks(workspace, { ...filters, status }, { activity }),
-  }));
+  const move = React.useCallback(
+    (taskId: string, status: TaskStatus) => {
+      const task = index?.task(taskId);
+      if (!task || task.status === status) return;
+      void updateTask(taskId, { status });
+    },
+    [index, updateTask],
+  );
 
-  const move = (taskId: string, status: TaskStatus) => {
-    const task = workspace.tasks.find((item) => item.id === taskId);
-    if (!task || task.status === status) return;
-    void updateTask(taskId, { status });
-  };
+  const handleDragStart = React.useCallback(
+    (event: React.DragEvent<HTMLElement>, taskId: string) => {
+      event.dataTransfer.setData("text/task-id", taskId);
+      event.dataTransfer.effectAllowed = "move";
+      setDraggingId(taskId);
+    },
+    [],
+  );
+
+  const handleDragEnd = React.useCallback(() => {
+    setDraggingId(null);
+    setDropTarget(null);
+  }, []);
+
+  if (!index) return null;
 
   return (
     <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -101,18 +123,14 @@ export function BoardView({
                   <TaskCard
                     key={task.id}
                     task={task}
+                    assignee={index.member(task.assigneeId)}
+                    goal={index.goal(task.goalId)}
+                    commentCount={index.commentCount(task.id)}
                     activity={activity?.[task.id]}
                     dragging={draggingId === task.id}
-                    onOpen={() => onOpenTask(task.id)}
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData("text/task-id", task.id);
-                      event.dataTransfer.effectAllowed = "move";
-                      setDraggingId(task.id);
-                    }}
-                    onDragEnd={() => {
-                      setDraggingId(null);
-                      setDropTarget(null);
-                    }}
+                    onOpen={onOpenTask}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
                   />
                 ))}
               </div>

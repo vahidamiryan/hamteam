@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
+import { useLocale } from "@/components/locale-provider";
+import { toast } from "@/components/ui/toast";
 
 import { api, type WorkspacePayload } from "@/lib/api-client";
 import type { Member, StorageInfo, Task, Workspace } from "@/lib/types";
@@ -39,7 +40,11 @@ type WorkspaceContextValue = {
     options?: { success?: string },
   ) => Promise<WorkspacePayload | null>;
   deleteTask: (taskId: string) => Promise<WorkspacePayload | null>;
-  addComment: (taskId: string, body: string) => Promise<WorkspacePayload | null>;
+  addComment: (
+    taskId: string,
+    body: string,
+    bodyEn?: string,
+  ) => Promise<WorkspacePayload | null>;
   deleteComment: (commentId: string) => Promise<WorkspacePayload | null>;
   createMember: (input: MemberCreateInput) => Promise<WorkspacePayload | null>;
   updateMember: (
@@ -68,13 +73,20 @@ function applyOptimisticTaskPatch(
   const now = new Date().toISOString();
 
   if (patch.title !== undefined) task.title = patch.title;
+  if (patch.titleEn !== undefined) task.titleEn = patch.titleEn || undefined;
   if (patch.description !== undefined) task.description = patch.description;
+  if (patch.descriptionEn !== undefined) {
+    task.descriptionEn = patch.descriptionEn || undefined;
+  }
   if (patch.priority !== undefined) task.priority = patch.priority;
   if (patch.assigneeId !== undefined) task.assigneeId = patch.assigneeId;
   if (patch.goalId !== undefined) task.goalId = patch.goalId;
   if (patch.dueDate !== undefined) task.dueDate = patch.dueDate;
   if (patch.blockedReason !== undefined) {
     task.blockedReason = patch.blockedReason?.trim() || null;
+  }
+  if (patch.blockedReasonEn !== undefined) {
+    task.blockedReasonEn = patch.blockedReasonEn || undefined;
   }
   if (patch.status !== undefined && patch.status !== task.status) {
     task.status = patch.status;
@@ -87,6 +99,7 @@ function applyOptimisticTaskPatch(
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useLocale();
   const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
   const [storage, setStorage] = React.useState<StorageInfo | null>(null);
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
@@ -114,7 +127,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         if (known) window.localStorage.setItem(CURRENT_USER_KEY, known);
       } catch (cause) {
         if (!active) return;
-        setError(cause instanceof Error ? cause.message : "خطای نامشخص");
+        setError(cause instanceof Error ? cause.message : t("toast.error"));
         setStatus("error");
       }
     }
@@ -123,7 +136,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [t]);
 
   const refresh = React.useCallback(async () => {
     try {
@@ -133,10 +146,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       setStatus("ready");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "خطای نامشخص");
+      setError(cause instanceof Error ? cause.message : t("toast.error"));
       setStatus("error");
     }
-  }, []);
+  }, [t]);
 
   const setCurrentUserId = React.useCallback((memberId: string) => {
     setCurrentUserIdState(memberId);
@@ -157,16 +170,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         const payload = await request();
         setWorkspace(payload.data);
         setStorage(payload.storage);
-        if (success) toast.success(success);
+        if (success) toast.add({ title: success, type: "success" });
         return payload;
       } catch (cause) {
-        toast.error(cause instanceof Error ? cause.message : "خطای نامشخص");
+        toast.add({
+          title: t("toast.error", {
+            message: cause instanceof Error ? cause.message : "",
+          }),
+          type: "error",
+        });
         // وضعیت محلی را با واقعیت سرور هم‌تراز می‌کنیم.
         await refresh();
         return null;
       }
     },
-    [refresh],
+    [refresh, t],
   );
 
   const value = React.useMemo<WorkspaceContextValue>(() => {
@@ -188,7 +206,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       mutate,
 
       createTask: (input) =>
-        mutate({ request: () => api.createTask(input), success: "تسک ساخته شد" }),
+        mutate({ request: () => api.createTask(input), success: t("toast.taskCreated") }),
 
       updateTask: (taskId, input, options) =>
         mutate({
@@ -206,16 +224,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             );
           },
           request: () => api.deleteTask(taskId),
-          success: "تسک حذف شد",
+          success: t("toast.taskDeleted"),
         }),
 
-      addComment: (taskId, body) => {
+      addComment: (taskId, body, bodyEn) => {
         if (!actorId) {
-          toast.error("اول مشخص کنید شما کدام عضو تیم هستید.");
+          toast.add({ title: t("toast.noMember"), type: "error" });
           return Promise.resolve(null);
         }
         return mutate({
-          request: () => api.addComment(taskId, { authorId: actorId, body }),
+          request: () => api.addComment(taskId, { authorId: actorId, body, bodyEn }),
         });
       },
 
@@ -230,12 +248,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }),
 
       createMember: (input) =>
-        mutate({ request: () => api.createMember(input), success: "عضو تیم اضافه شد" }),
+        mutate({ request: () => api.createMember(input), success: t("toast.memberCreated") }),
 
       updateMember: (memberId, input) =>
         mutate({
           request: () => api.updateMember(memberId, input),
-          success: "اطلاعات عضو ذخیره شد",
+          success: t("toast.memberUpdated"),
         }),
 
       deleteMember: (memberId) =>
@@ -250,14 +268,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             }
           },
           request: () => api.deleteMember(memberId),
-          success: "عضو حذف شد",
+          success: t("toast.memberDeleted"),
         }),
 
       createGoal: (input) =>
-        mutate({ request: () => api.createGoal(input), success: "هدف ساخته شد" }),
+        mutate({ request: () => api.createGoal(input), success: t("toast.goalCreated") }),
 
       updateGoal: (goalId, input) =>
-        mutate({ request: () => api.updateGoal(goalId, input), success: "هدف ذخیره شد" }),
+        mutate({ request: () => api.updateGoal(goalId, input), success: t("toast.goalUpdated") }),
 
       deleteGoal: (goalId) =>
         mutate({
@@ -268,13 +286,23 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             }
           },
           request: () => api.deleteGoal(goalId),
-          success: "هدف حذف شد",
+          success: t("toast.goalDeleted"),
         }),
 
       resetDemo: () =>
-        mutate({ request: () => api.reset(), success: "داده‌ی نمونه بازنشانی شد" }),
+        mutate({ request: () => api.reset(), success: t("toast.reset") }),
     };
-  }, [workspace, storage, status, error, currentUserId, setCurrentUserId, refresh, mutate]);
+  }, [
+    workspace,
+    storage,
+    status,
+    error,
+    currentUserId,
+    setCurrentUserId,
+    refresh,
+    mutate,
+    t,
+  ]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

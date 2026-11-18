@@ -21,15 +21,21 @@ const email = z
   .regex(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, "ایمیل معتبر نیست.")
   .or(z.literal(""));
 
+/** فیلدهای انگلیسی اختیاری‌اند؛ محتوا در هر دو زبان نگه داشته می‌شود. */
+const optionalText = (max: number) => z.string().trim().max(max).optional();
+
 export const taskCreateSchema = z.object({
   title: title(160, "عنوان تسک"),
+  titleEn: optionalText(160),
   description: z.string().max(4000, "توضیحات حداکثر ۴۰۰۰ کاراکتر است.").optional(),
+  descriptionEn: optionalText(4000),
   status: z.enum(TASK_STATUSES).optional(),
   priority: z.enum(PRIORITIES).optional(),
   assigneeId: z.string().trim().min(1).nullable().optional(),
   goalId: z.string().trim().min(1).nullable().optional(),
   dueDate: nullableIsoDate.optional(),
   blockedReason: z.string().trim().max(300, "دلیل مسدودی طولانی است.").nullable().optional(),
+  blockedReasonEn: optionalText(300),
 });
 
 export const taskUpdateSchema = taskCreateSchema.partial();
@@ -41,19 +47,25 @@ export const commentCreateSchema = z.object({
     .trim()
     .min(1, "متن کامنت خالی است.")
     .max(2000, "کامنت حداکثر ۲۰۰۰ کاراکتر است."),
+  bodyEn: optionalText(2000),
 });
 
 export const memberCreateSchema = z.object({
   name: title(80, "نام عضو"),
+  nameEn: optionalText(80),
   role: z.string().trim().max(60, "عنوان نقش حداکثر ۶۰ کاراکتر است.").optional(),
+  roleEn: optionalText(60),
   email: email.optional(),
+  avatarIndex: z.number().int().min(0).max(11).optional(),
 });
 
 export const memberUpdateSchema = memberCreateSchema.partial();
 
 export const goalCreateSchema = z.object({
   title: title(140, "عنوان هدف"),
+  titleEn: optionalText(140),
   description: z.string().max(2000, "توضیحات حداکثر ۲۰۰۰ کاراکتر است.").optional(),
+  descriptionEn: optionalText(2000),
   ownerId: z.string().trim().min(1).nullable().optional(),
   targetDate: nullableIsoDate.optional(),
   status: z.enum(GOAL_STATUSES).optional(),

@@ -70,21 +70,40 @@ export function sortTasks(tasks: Task[]): Task[] {
   });
 }
 
+export type TaskFilterOptions = {
+  /** اگر تعیین نشود، همهٔ وضعیت‌ها برمی‌گردند. */
+  status?: TaskStatus | null;
+  search?: string;
+  assigneeId?: string | null;
+  onlyOverdue?: boolean;
+};
+
+function matchesSearch(task: Task, needle: string): boolean {
+  if (!needle) return true;
+  return [
+    task.title,
+    task.titleEn,
+    task.description,
+    task.descriptionEn,
+    task.blockedReason,
+    task.blockedReasonEn,
+  ]
+    .filter(Boolean)
+    .some((value) => (value as string).toLowerCase().includes(needle));
+}
+
 export function filterTasks(
   workspace: Workspace,
-  options: { status: TaskStatus; search: string; assigneeId: string | null },
+  options: TaskFilterOptions,
+  now: Date = new Date(),
 ): Task[] {
-  const needle = options.search.trim().toLowerCase();
+  const needle = (options.search ?? "").trim().toLowerCase();
   return sortTasks(
     workspace.tasks.filter((task) => {
-      if (task.status !== options.status) return false;
+      if (options.status && task.status !== options.status) return false;
       if (options.assigneeId && task.assigneeId !== options.assigneeId) return false;
-      if (!needle) return true;
-      return (
-        task.title.toLowerCase().includes(needle) ||
-        task.description.toLowerCase().includes(needle) ||
-        (task.blockedReason ?? "").toLowerCase().includes(needle)
-      );
+      if (options.onlyOverdue && !isOverdue(task, now)) return false;
+      return matchesSearch(task, needle);
     }),
   );
 }

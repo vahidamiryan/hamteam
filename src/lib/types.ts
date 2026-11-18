@@ -21,15 +21,21 @@ export type GoalStatus = (typeof GOAL_STATUSES)[number];
 export interface Member {
   id: string;
   name: string;
+  nameEn?: string;
   role: string;
+  roleEn?: string;
   email: string;
+  /** اندیس آواتار تصادفی (۰ تا ۱۱) */
+  avatarIndex?: number;
   createdAt: string;
 }
 
 export interface Task {
   id: string;
   title: string;
+  titleEn?: string;
   description: string;
+  descriptionEn?: string;
   status: TaskStatus;
   priority: Priority;
   /** عضوی که تسک به او سپرده شده است. */
@@ -40,6 +46,7 @@ export interface Task {
   dueDate: string | null;
   /** دلیل مسدود بودن تسک */
   blockedReason: string | null;
+  blockedReasonEn?: string;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
@@ -50,13 +57,16 @@ export interface Comment {
   taskId: string;
   authorId: string;
   body: string;
+  bodyEn?: string;
   createdAt: string;
 }
 
 export interface Goal {
   id: string;
   title: string;
+  titleEn?: string;
   description: string;
+  descriptionEn?: string;
   ownerId: string | null;
   /** تاریخ هدف به شکل YYYY-MM-DD */
   targetDate: string | null;

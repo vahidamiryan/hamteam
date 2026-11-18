@@ -1,54 +1,107 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { avatarTone, initialsOf } from "@/lib/labels";
-import { cn } from "@/lib/utils";
+"use client";
 
-const SIZES = {
-  xs: "size-5 text-[9px]",
-  sm: "size-6 text-[10px]",
-  md: "size-8 text-xs",
-  lg: "size-11 text-sm",
-} as const;
+import * as React from "react";
+import { MailIcon, UserRoundIcon } from "lucide-react";
 
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { Item, ItemContent, ItemMedia } from "@/components/ui/item";
+import { Separator } from "@/components/ui/separator";
+import { useLocale } from "@/components/locale-provider";
+import { avatarIndexFor, avatarSrc } from "@/lib/avatars";
+import { initialsOf } from "@/lib/labels";
+import { memberName, memberRole } from "@/lib/locale-text";
+import type { Member } from "@/lib/types";
+
+type AvatarSize = "sm" | "default" | "lg";
+
+/**
+ * آواتار عضو با تصویر تصادفیِ پایدار و fallback حروف اول نام.
+ * با نگه‌داشتن نشانگر، کارت معرفی عضو نمایش داده می‌شود.
+ */
 export function MemberAvatar({
-  name,
-  memberId,
-  size = "md",
+  member,
+  size = "default",
+  withCard = false,
   className,
 }: {
-  name: string;
-  memberId?: string | null;
-  size?: keyof typeof SIZES;
+  member: Pick<Member, "id" | "name" | "nameEn" | "role" | "roleEn" | "email" | "avatarIndex"> | null;
+  size?: AvatarSize;
+  withCard?: boolean;
   className?: string;
 }) {
-  return (
-    <Avatar className={cn(SIZES[size], "shrink-0", className)} aria-hidden>
-      <AvatarFallback
-        className={cn("font-medium tracking-tight", avatarTone(memberId ?? name))}
-      >
-        {initialsOf(name)}
-      </AvatarFallback>
+  const { locale, t } = useLocale();
+
+  if (!member) return <UnassignedAvatar size={size} className={className} />;
+
+  const name = memberName(locale, member);
+  const role = memberRole(locale, member);
+  const avatar = (
+    <Avatar size={size} className={className}>
+      <AvatarImage src={avatarSrc(avatarIndexFor(member))} alt={name} />
+      <AvatarFallback>{initialsOf(name)}</AvatarFallback>
     </Avatar>
+  );
+
+  if (!withCard) return avatar;
+
+  return (
+    <HoverCard>
+      <HoverCardTrigger render={<span className="inline-flex cursor-default" />}>
+        {avatar}
+      </HoverCardTrigger>
+      <HoverCardContent align="start" className="w-64">
+        <div className="flex items-center gap-3">
+          <MemberAvatar member={member} size="lg" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {role || "—"}
+            </p>
+          </div>
+        </div>
+        {member.email ? (
+          <>
+            <Separator className="my-3" />
+            <Item variant="default" size="sm" className="p-0">
+              <ItemMedia variant="icon">
+                <MailIcon />
+              </ItemMedia>
+              <ItemContent>
+                <span dir="ltr" className="truncate text-xs text-muted-foreground">
+                  {member.email}
+                </span>
+              </ItemContent>
+            </Item>
+          </>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">{t("task.unassigned")}</p>
+        )}
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
 export function UnassignedAvatar({
-  size = "sm",
+  size = "default",
   className,
 }: {
-  size?: keyof typeof SIZES;
+  size?: AvatarSize;
   className?: string;
 }) {
   return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground",
-        SIZES[size],
-        className,
-      )}
-      title="بدون مسئول"
-      aria-label="بدون مسئول"
-    >
-      ؟
-    </span>
+    <Avatar size={size} className={className}>
+      <AvatarFallback>
+        <UserRoundIcon className="size-3.5" />
+      </AvatarFallback>
+    </Avatar>
   );
 }

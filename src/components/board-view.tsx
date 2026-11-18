@@ -3,159 +3,123 @@
 import * as React from "react";
 import { PlusIcon } from "lucide-react";
 
+import { CountBadge } from "@/components/chips";
+import { useLocale } from "@/components/locale-provider";
 import { TaskCard } from "@/components/task-card";
+import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/components/workspace-provider";
-import { toFaDigits } from "@/lib/dates";
-import { filterTasks } from "@/lib/derived";
-import { BOARD_COLUMNS, STATUS_META } from "@/lib/labels";
-import type { TaskStatus } from "@/lib/types";
+import { filterTasks, type TaskFilterOptions } from "@/lib/derived";
+import { STATUS_META, STATUS_ORDER } from "@/lib/labels";
 import { cn } from "@/lib/utils";
-
-function QuickAdd({
-  status,
-  onCreate,
-}: {
-  status: TaskStatus;
-  onCreate: (status: TaskStatus, title: string) => Promise<boolean>;
-}) {
-  const [value, setValue] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-
-  return (
-    <form
-      className="mt-0.5"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        const title = value.trim();
-        if (!title || busy) return;
-        setBusy(true);
-        const created = await onCreate(status, title);
-        setBusy(false);
-        if (created) setValue("");
-      }}
-    >
-      <div className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1.5 transition-colors hover:border-border/70 hover:bg-background/70 focus-within:border-border focus-within:bg-background">
-        <PlusIcon className="size-3.5 shrink-0 text-muted-foreground" />
-        <input
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          disabled={busy}
-          placeholder={`افزودن به ${STATUS_META[status].label}…`}
-          aria-label={`افزودن تسک به ${STATUS_META[status].label}`}
-          className="h-6 w-full min-w-0 bg-transparent text-[0.8rem] outline-none placeholder:text-muted-foreground/70 disabled:opacity-60"
-        />
-      </div>
-    </form>
-  );
-}
+import type { TaskStatus } from "@/lib/types";
 
 export function BoardView({
-  search,
-  assigneeId,
+  filters,
   onOpenTask,
-  onCreateTask,
+  onAddTask,
 }: {
-  search: string;
-  assigneeId: string | null;
+  filters: TaskFilterOptions;
   onOpenTask: (taskId: string) => void;
-  onCreateTask: (status: TaskStatus, title: string) => Promise<boolean>;
+  onAddTask: (status: TaskStatus) => void;
 }) {
+  const { t, formatNumber } = useLocale();
   const { workspace, updateTask } = useWorkspace();
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
-  const [dragOver, setDragOver] = React.useState<TaskStatus | null>(null);
+  const [dropTarget, setDropTarget] = React.useState<TaskStatus | null>(null);
 
   if (!workspace) return null;
 
-  const handleDrop = async (status: TaskStatus, event: React.DragEvent) => {
-    event.preventDefault();
-    setDragOver(null);
-    const taskId = event.dataTransfer.getData("text/plain") || draggingId;
-    setDraggingId(null);
-    if (!taskId) return;
+  const columns = STATUS_ORDER.map((status) => ({
+    status,
+    tasks: filterTasks(workspace, { ...filters, status }),
+  }));
 
+  const move = (taskId: string, status: TaskStatus) => {
     const task = workspace.tasks.find((item) => item.id === taskId);
     if (!task || task.status === status) return;
-
-    await updateTask(taskId, { status }, { success: `به «${STATUS_META[status].label}» منتقل شد` });
-    // برای ثبت دلیل مسدودی، تسک باز می‌شود.
-    if (status === "blocked" && !task.blockedReason) onOpenTask(taskId);
+    void updateTask(taskId, { status });
   };
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-3 xl:gap-4">
-      {BOARD_COLUMNS.map((status) => {
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      {columns.map(({ status, tasks }) => {
         const meta = STATUS_META[status];
-        const tasks = filterTasks(workspace, { status, search, assigneeId });
-        const isTarget = dragOver === status;
-
+        const isTarget = dropTarget === status;
         return (
           <section
             key={status}
-            aria-label={meta.label}
+            aria-label={t(meta.labelKey)}
             onDragOver={(event) => {
               event.preventDefault();
               event.dataTransfer.dropEffect = "move";
-              setDragOver(status);
+              if (dropTarget !== status) setDropTarget(status);
             }}
             onDragLeave={(event) => {
-              if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-              setDragOver(null);
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                setDropTarget(null);
+              }
             }}
-            onDrop={(event) => void handleDrop(status, event)}
+            onDrop={(event) => {
+              event.preventDefault();
+              const taskId = event.dataTransfer.getData("text/task-id") || draggingId;
+              setDropTarget(null);
+              setDraggingId(null);
+              if (taskId) move(taskId, status);
+            }}
             className={cn(
-              "flex w-[19rem] shrink-0 flex-col rounded-2xl border border-border/70 bg-muted/30 transition-colors xl:w-auto xl:flex-1",
-              isTarget && "border-primary/40 bg-primary/[0.04] ring-2 ring-primary/10",
+              "flex min-h-44 flex-col gap-2 rounded-xl border border-transparent bg-muted/40 p-2 transition-colors xl:min-h-[26rem]",
+              isTarget && "border-ring/60 bg-accent/50",
             )}
           >
-            <header className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
-              <span className={cn("size-2 rounded-full", meta.dot)} aria-hidden />
-              <h2 className="text-[0.78rem] font-semibold">{meta.label}</h2>
-              <span className="rounded-full bg-background px-1.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border/70">
-                {toFaDigits(tasks.length)}
-              </span>
+            <header className="flex items-center gap-2 px-1 pt-0.5">
+              <span className={cn("size-2 rounded-full", meta.dot)} aria-hidden="true" />
+              <h2 className="text-xs font-semibold tracking-wide">{t(meta.labelKey)}</h2>
+              <CountBadge value={tasks.length} className="h-5 px-1.5 text-[11px]" />
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="ms-auto text-muted-foreground"
+                aria-label={t("board.addTo", { status: t(meta.labelKey) })}
+                title={t("board.addTo", { status: t(meta.labelKey) })}
+                onClick={() => onAddTask(status)}
+              >
+                <PlusIcon />
+              </Button>
             </header>
 
-            <div className="flex max-h-[calc(100dvh-17rem)] min-h-24 flex-col gap-2 overflow-y-auto p-2">
-              {tasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  assignee={
-                    workspace.members.find((member) => member.id === task.assigneeId) ?? null
-                  }
-                  goal={workspace.goals.find((goal) => goal.id === task.goalId) ?? null}
-                  commentCount={
-                    workspace.comments.filter((comment) => comment.taskId === task.id).length
-                  }
-                  isDragging={draggingId === task.id}
-                  onOpen={() => onOpenTask(task.id)}
-                  onDragStart={(event) => {
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("text/plain", task.id);
-                    setDraggingId(task.id);
-                  }}
-                  onDragEnd={() => {
-                    setDraggingId(null);
-                    setDragOver(null);
-                  }}
-                />
-              ))}
+            <p className="px-1 text-[11px] text-muted-foreground">
+              {t(meta.hintKey)}
+            </p>
 
+            <div className="flex flex-1 flex-col gap-2">
               {tasks.length === 0 ? (
-                <div
-                  className={cn(
-                    "flex flex-1 items-center justify-center rounded-xl border border-dashed border-border/70 px-3 py-6 text-center text-[11px] text-muted-foreground",
-                    isTarget && "border-primary/40 text-primary",
-                  )}
-                >
-                  {isTarget ? "برای انتقال، اینجا رها کنید" : "تسکی در این وضعیت نیست"}
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/80 px-2 py-6 text-center text-[11px] text-muted-foreground">
+                  {t("board.empty")}
                 </div>
-              ) : null}
-
-              {status !== "done" ? (
-                <QuickAdd status={status} onCreate={onCreateTask} />
-              ) : null}
+              ) : (
+                tasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    dragging={draggingId === task.id}
+                    onOpen={() => onOpenTask(task.id)}
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData("text/task-id", task.id);
+                      event.dataTransfer.effectAllowed = "move";
+                      setDraggingId(task.id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      setDropTarget(null);
+                    }}
+                  />
+                ))
+              )}
             </div>
+
+            <footer className="px-1 pb-0.5 text-[10px] text-muted-foreground tabular-nums">
+              {t("board.columnCount", { count: formatNumber(tasks.length) })}
+            </footer>
           </section>
         );
       })}

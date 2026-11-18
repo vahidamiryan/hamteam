@@ -2,405 +2,354 @@
 
 import * as React from "react";
 import {
-  AlertTriangleIcon,
-  BanIcon,
   ChevronDownIcon,
-  ClockIcon,
+  Columns3Icon,
   DatabaseIcon,
-  LayersIcon,
+  EllipsisIcon,
   PlusIcon,
-  RefreshCwIcon,
-  RotateCcwIcon,
-  SearchIcon,
+  RefreshCcwIcon,
+  TableIcon,
+  TargetIcon,
+  TriangleAlertIcon,
   UsersIcon,
 } from "lucide-react";
 
-import { BoardView } from "@/components/board-view";
-import { GoalsView } from "@/components/goals-view";
 import { MemberAvatar } from "@/components/member-avatar";
-import { MenuSelect } from "@/components/menu-select";
+import { BoardView } from "@/components/board-view";
+import { FilterBar } from "@/components/filter-bar";
+import { GoalsView } from "@/components/goals-view";
+import { useLocale } from "@/components/locale-provider";
 import { NewTaskDialog } from "@/components/new-task-dialog";
 import { PeopleView } from "@/components/people-view";
+import { TableView } from "@/components/table-view";
 import { TaskSheet } from "@/components/task-sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useWorkspace } from "@/components/workspace-provider";
-import { toFaDigits } from "@/lib/dates";
-import { workspaceStats } from "@/lib/derived";
+import { filterTasks, workspaceStats, type TaskFilterOptions } from "@/lib/derived";
+import { memberName } from "@/lib/locale-text";
+import type { Locale } from "@/lib/i18n";
 import type { TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type View = "board" | "people" | "goals";
+type View = "board" | "table" | "people" | "goals";
 
-const VIEWS: { value: View; label: string }[] = [
-  { value: "board", label: "برد کارها" },
-  { value: "people", label: "افراد" },
-  { value: "goals", label: "اهداف" },
+const NAV: { value: View; labelKey: "nav.board" | "nav.table" | "nav.people" | "nav.goals"; icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: "board", labelKey: "nav.board", icon: Columns3Icon },
+  { value: "table", labelKey: "nav.table", icon: TableIcon },
+  { value: "people", labelKey: "nav.people", icon: UsersIcon },
+  { value: "goals", labelKey: "nav.goals", icon: TargetIcon },
 ];
 
-function StatCard({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone?: "danger" | "warning" | "default";
-}) {
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-2 rounded-xl border border-border/70 bg-card px-2.5 py-2",
-        tone === "danger" && "border-rose-200/70 bg-rose-50/50",
-        tone === "warning" && "border-amber-200/70 bg-amber-50/50",
-      )}
-    >
-      <span
-        className={cn(
-          "flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground",
-          tone === "danger" && "bg-rose-100 text-rose-600",
-          tone === "warning" && "bg-amber-100 text-amber-700",
-        )}
-      >
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-[0.95rem] font-semibold leading-5 tabular-nums">
-          {toFaDigits(value)}
-        </span>
-        <span className="block truncate text-[10px] text-muted-foreground">{label}</span>
-      </span>
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-12 animate-pulse rounded-xl bg-muted/60" />
-        ))}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="h-72 animate-pulse rounded-2xl bg-muted/50" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function AppShell() {
-  const { workspace, storage, status, error, refresh, currentUser, setCurrentUserId, createTask, resetDemo } =
-    useWorkspace();
+  const { locale, setLocale, t, formatNumber } = useLocale();
+  const {
+    workspace,
+    storage,
+    status,
+    error,
+    currentUser,
+    setCurrentUserId,
+    refresh,
+    resetDemo,
+  } = useWorkspace();
+
   const [view, setView] = React.useState<View>("board");
-  const [search, setSearch] = React.useState("");
-  const [assigneeFilter, setAssigneeFilter] = React.useState<string | null>(null);
-  const [openTaskId, setOpenTaskId] = React.useState<string | null>(null);
-  const [newTask, setNewTask] = React.useState<{ open: boolean; status: TaskStatus }>({
-    open: false,
-    status: "backlog",
+  const [filters, setFilters] = React.useState<TaskFilterOptions>({
+    search: "",
+    assigneeId: null,
+    onlyOverdue: false,
   });
+  const [openTaskId, setOpenTaskId] = React.useState<string | null>(null);
+  const [newTask, setNewTask] = React.useState<{
+    open: boolean;
+    status: TaskStatus;
+    assigneeId: string | null;
+  }>({ open: false, status: "backlog", assigneeId: null });
+  const [resetOpen, setResetOpen] = React.useState(false);
 
   const stats = workspace ? workspaceStats(workspace) : null;
+  const filtered = workspace ? filterTasks(workspace, filters) : [];
 
-  const createTaskFromColumn = React.useCallback(
-    async (taskStatus: TaskStatus, title: string) => {
-      const payload = await createTask({
-        title,
-        status: taskStatus,
-        assigneeId: assigneeFilter,
-      });
-      return Boolean(payload);
-    },
-    [createTask, assigneeFilter],
-  );
+  const openNewTask = (taskStatus: TaskStatus = "backlog") =>
+    setNewTask({
+      open: true,
+      status: taskStatus,
+      assigneeId: filters.assigneeId ?? null,
+    });
+
+  const showMemberTasks = (memberId: string) => {
+    setFilters({ search: "", assigneeId: memberId, onlyOverdue: false });
+    setView("board");
+  };
 
   return (
-    <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1500px] items-center gap-3 px-3 pt-2.5 pb-1.5 sm:px-5">
+    <div className="flex min-h-svh flex-col bg-background">
+      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
           <div className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
-              <LayersIcon className="size-4.5" />
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <UsersIcon className="size-4" aria-hidden="true" />
             </span>
-            <div className="hidden sm:block">
-              <h1 className="text-[0.95rem] font-semibold leading-5">هم‌تیم</h1>
-              <p className="text-[10.5px] leading-4 text-muted-foreground">
-                مدیریت تسک و همفکری تیمی
+            <div className="leading-tight">
+              <h1 className="text-sm font-semibold">{t("app.name")}</h1>
+              <p className="hidden text-[11px] text-muted-foreground sm:block">
+                {t("app.tagline")}
               </p>
             </div>
           </div>
 
-          <div className="ms-auto flex items-center gap-2">
-            {storage ? (
-              <span
-                className={cn(
-                  "hidden items-center gap-1.5 rounded-full border border-border/70 bg-background px-2 py-1 text-[10.5px] text-muted-foreground md:inline-flex",
-                  !storage.persistent && "border-amber-300/80 bg-amber-50 text-amber-800",
-                )}
-                title={storage.hint}
+          <ToggleGroup
+            value={[view]}
+            onValueChange={(next) => {
+              const [first] = next;
+              if (first) setView(first as View);
+            }}
+            spacing={0}
+            variant="outline"
+            size="sm"
+            className="order-3 w-full sm:order-none sm:ms-2 sm:w-auto"
+            aria-label={t("app.name")}
+          >
+            {NAV.map((item) => (
+              <ToggleGroupItem
+                key={item.value}
+                value={item.value}
+                className="flex-1 gap-1.5 px-2 sm:flex-none"
+                aria-label={t(item.labelKey)}
               >
-                <DatabaseIcon className="size-3" />
-                {storage.label}
-              </span>
-            ) : null}
+                <item.icon className="size-3.5" />
+                <span className="hidden sm:inline">{t(item.labelKey)}</span>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
 
-            {workspace ? (
-              <div className="hidden items-center lg:flex">
-                {workspace.members.slice(0, 5).map((member, index) => (
-                  <MemberAvatar
-                    key={member.id}
-                    name={member.name}
-                    memberId={member.id}
-                    size="sm"
-                    className={cn(
-                      "ring-2 ring-background",
-                      index > 0 && "-ms-1.5",
-                      member.id === currentUser?.id && "ring-primary/40",
-                    )}
-                  />
-                ))}
-                {workspace.members.length > 5 ? (
-                  <span className="-ms-1.5 flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-background">
-                    +{toFaDigits(workspace.members.length - 5)}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
+          <div className="ms-auto flex items-center gap-1.5">
+            <ToggleGroup
+              value={[locale]}
+              onValueChange={(next) => {
+                const [first] = next;
+                if (first) setLocale(first as Locale);
+              }}
+              spacing={0}
+              variant="outline"
+              size="sm"
+              aria-label={t("app.language")}
+            >
+              <ToggleGroupItem value="fa" aria-label={t("app.fa")} className="px-2 text-[11px]">
+                فا
+              </ToggleGroupItem>
+              <ToggleGroupItem value="en" aria-label={t("app.en")} className="px-2 text-[11px]">
+                EN
+              </ToggleGroupItem>
+            </ToggleGroup>
 
             {currentUser ? (
-              <MenuSelect
-                value={currentUser.id}
-                align="end"
-                ariaLabel="انتخاب عضو فعال"
-                onChange={setCurrentUserId}
-                className="h-8 w-auto gap-2 bg-background pe-1.5"
-                options={workspace!.members.map((member) => ({
-                  value: member.id,
-                  label: member.name,
-                  hint: member.role || undefined,
-                  leading: (
-                    <MemberAvatar name={member.name} memberId={member.id} size="xs" />
-                  ),
-                }))}
-                leading={
-                  <MemberAvatar
-                    name={currentUser.name}
-                    memberId={currentUser.id}
-                    size="xs"
-                  />
-                }
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button variant="outline" size="sm" />}
+                  className="gap-1.5 px-1.5 font-normal"
+                  aria-label={t("action.thisIsMe")}
+                >
+                  <MemberAvatar member={currentUser} size="sm" />
+                  <span className="hidden max-w-24 truncate sm:inline">
+                    {memberName(locale, currentUser)}
+                  </span>
+                  <ChevronDownIcon data-icon="inline-end" className="text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-52">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{t("action.thisIsMe")}</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={currentUser.id}
+                      onValueChange={(value) => setCurrentUserId(String(value))}
+                    >
+                      {(workspace?.members ?? []).map((member) => (
+                        <DropdownMenuRadioItem
+                          key={member.id}
+                          value={member.id}
+                          className="gap-2"
+                        >
+                          <MemberAvatar member={member} size="sm" />
+                          <span className="truncate">{memberName(locale, member)}</span>
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+
+            <Button size="sm" onClick={() => openNewTask()}>
+              <PlusIcon data-icon="inline-start" />
+              <span className="hidden sm:inline">{t("action.newTask")}</span>
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="ghost" size="icon-sm" />}
+                aria-label={t("action.more")}
+              >
+                <EllipsisIcon />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-48">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-normal">
+                    <DatabaseIcon className="size-3.5" />
+                    {t("storage.label")}
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem disabled>
+                    {storage ? t(`storage.mode.${storage.mode}`) : "—"}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => void refresh()}>
+                    <RefreshCcwIcon data-icon="inline-start" />
+                    {t("action.retry")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setResetOpen(true)}>
+                    {t("action.reset")}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {stats ? (
+          <div className="mx-auto w-full max-w-7xl overflow-x-auto px-3 pb-2 sm:px-4">
+            <div className="flex items-center gap-1.5">
+              {[
+                { label: t("stats.total"), value: stats.total, tone: "bg-status-backlog" },
+                {
+                  label: t("stats.inProgress"),
+                  value: stats.inProgress,
+                  tone: "bg-status-progress",
+                },
+                { label: t("stats.blocked"), value: stats.blocked, tone: "bg-status-blocked" },
+                { label: t("stats.overdue"), value: stats.overdue, tone: "bg-status-pending" },
+                {
+                  label: t("stats.unassigned"),
+                  value: stats.unassigned,
+                  tone: "bg-muted-foreground/40",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/70 px-2 py-1"
+                >
+                  <span className={cn("size-1.5 rounded-full", item.tone)} aria-hidden="true" />
+                  <span className="text-[11px] text-muted-foreground">{item.label}</span>
+                  <span className="text-[11px] font-semibold tabular-nums">
+                    {formatNumber(item.value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </header>
+
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-3 px-3 py-3 sm:px-4">
+        {storage?.mode === "ephemeral" ? (
+          <Alert>
+            <TriangleAlertIcon />
+            <AlertTitle>{t("storage.ephemeralTitle")}</AlertTitle>
+            <AlertDescription>{t("storage.ephemeralBody")}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {status === "loading" ? (
+          <div className="flex flex-col gap-3" aria-busy="true" aria-label={t("app.loading")}>
+            <Skeleton className="h-8 w-64" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {Array.from({ length: 5 }, (_, index) => (
+                <Skeleton key={index} className="h-40 rounded-xl" />
+              ))}
+            </div>
+          </div>
+        ) : status === "error" ? (
+          <Alert variant="destructive">
+            <TriangleAlertIcon />
+            <AlertTitle>{t("app.loadError")}</AlertTitle>
+            <AlertDescription className="flex flex-col gap-2">
+              <span>{error}</span>
+              <Button size="sm" variant="outline" onClick={() => void refresh()}>
+                {t("action.retry")}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : workspace ? (
+          <>
+            {view === "board" || view === "table" ? (
+              <FilterBar
+                filters={filters}
+                onChange={setFilters}
+                resultCount={filtered.length}
               />
             ) : null}
 
-            <Button onClick={() => setNewTask({ open: true, status: "backlog" })}>
-              <PlusIcon />
-              تسک جدید
-            </Button>
-          </div>
-        </div>
-
-        <div className="mx-auto flex max-w-[1500px] items-center gap-2 px-3 pb-2 sm:px-5">
-          <div className="inline-flex items-center gap-1 rounded-xl bg-muted/70 p-0.5">
-            {VIEWS.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setView(item.value)}
-                aria-pressed={view === item.value}
-                className={cn(
-                  "h-7 rounded-[0.6rem] px-2.5 text-[0.8rem] font-medium transition-colors",
-                  view === item.value
-                    ? "bg-background text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.08)]"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="ms-auto flex items-center gap-1.5">
-            <Button variant="ghost" size="icon-sm" aria-label="به‌روزرسانی" onClick={() => void refresh()}>
-              <RefreshCwIcon />
-            </Button>
-            {storage ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="hidden text-muted-foreground sm:inline-flex"
-                onClick={() => {
-                  if (window.confirm("داده‌ی نمونه بازنشانی شود؟ همه‌ی تغییرات فعلی پاک می‌شود.")) {
-                    void resetDemo();
-                  }
-                }}
-              >
-                <RotateCcwIcon />
-                بازنشانی
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-[1500px] px-3 py-3 sm:px-5">
-        {storage && !storage.persistent ? (
-          <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-300/70 bg-amber-50/80 px-3 py-2 text-[0.78rem] text-amber-900">
-            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-            <p>
-              <span className="font-semibold">حالت نمایشی:</span> {storage.hint}
-            </p>
-          </div>
-        ) : null}
-
-        {status === "loading" ? <LoadingState /> : null}
-
-        {status === "error" ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50/60 p-6 text-center">
-            <p className="text-sm font-medium text-rose-900">
-              بارگذاری فضای کاری ناموفق بود
-            </p>
-            <p className="mt-1 text-[0.8rem] text-rose-800/80">{error}</p>
-            <Button variant="outline" className="mt-3" onClick={() => void refresh()}>
-              تلاش دوباره
-            </Button>
-          </div>
-        ) : null}
-
-        {status === "ready" && workspace ? (
-          <div className="space-y-3">
             {view === "board" ? (
-              <>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-                  <StatCard
-                    icon={<LayersIcon className="size-3.5" />}
-                    label="کل تسک‌ها"
-                    value={stats?.total ?? 0}
-                  />
-                  <StatCard
-                    icon={<ClockIcon className="size-3.5" />}
-                    label="در حال انجام"
-                    value={stats?.inProgress ?? 0}
-                  />
-                  <StatCard
-                    icon={<BanIcon className="size-3.5" />}
-                    label="مسدود"
-                    value={stats?.blocked ?? 0}
-                    tone={stats && stats.blocked > 0 ? "danger" : "default"}
-                  />
-                  <StatCard
-                    icon={<AlertTriangleIcon className="size-3.5" />}
-                    label="سررسید گذشته"
-                    value={stats?.overdue ?? 0}
-                    tone={stats && stats.overdue > 0 ? "warning" : "default"}
-                  />
-                  <StatCard
-                    icon={<UsersIcon className="size-3.5" />}
-                    label="بدون مسئول"
-                    value={stats?.unassigned ?? 0}
-                  />
-                </div>
+              <BoardView
+                filters={filters}
+                onOpenTask={setOpenTaskId}
+                onAddTask={openNewTask}
+              />
+            ) : null}
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <SearchIcon className="pointer-events-none absolute start-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                      placeholder="جست‌وجو در عنوان، توضیح یا دلیل مسدودی…"
-                      className="h-8 w-60 ps-7 text-[0.8rem] sm:w-72"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    <button
-                      type="button"
-                      onClick={() => setAssigneeFilter(null)}
-                      className={cn(
-                        "h-7 shrink-0 rounded-full border px-2.5 text-[0.75rem] transition",
-                        assigneeFilter === null
-                          ? "border-foreground/20 bg-foreground/5 font-medium"
-                          : "border-transparent text-muted-foreground hover:bg-muted",
-                      )}
-                    >
-                      همه
-                    </button>
-                    {workspace.members.map((member) => (
-                      <button
-                        key={member.id}
-                        type="button"
-                        onClick={() =>
-                          setAssigneeFilter((current) =>
-                            current === member.id ? null : member.id,
-                          )
-                        }
-                        className={cn(
-                          "flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-1.5 pe-2 text-[0.75rem] transition",
-                          assigneeFilter === member.id
-                            ? "border-foreground/20 bg-foreground/5 font-medium"
-                            : "border-transparent text-muted-foreground hover:bg-muted",
-                        )}
-                        title={member.name}
-                      >
-                        <MemberAvatar
-                          name={member.name}
-                          memberId={member.id}
-                          size="xs"
-                        />
-                        <span className="max-w-24 truncate">{member.name.split(" ")[0]}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {assigneeFilter ? (
-                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <ChevronDownIcon className="size-3" />
-                      فقط تسک‌های{" "}
-                      {workspace.members.find((member) => member.id === assigneeFilter)?.name}
-                    </span>
-                  ) : null}
-                </div>
-
-                <BoardView
-                  search={search}
-                  assigneeId={assigneeFilter}
-                  onOpenTask={setOpenTaskId}
-                  onCreateTask={createTaskFromColumn}
-                />
-              </>
+            {view === "table" ? (
+              <TableView filters={filters} onOpenTask={setOpenTaskId} />
             ) : null}
 
             {view === "people" ? (
               <PeopleView
                 onOpenTask={setOpenTaskId}
-                onFilterBoard={(memberId) => {
-                  setAssigneeFilter(memberId);
-                  setView("board");
-                }}
+                onShowTasks={showMemberTasks}
               />
             ) : null}
 
             {view === "goals" ? <GoalsView onOpenTask={setOpenTaskId} /> : null}
-          </div>
-        ) : null}
-
-        {status === "ready" && !workspace ? (
-          <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            فضای کاری خالی است.
-          </div>
+          </>
         ) : null}
       </main>
 
+      <footer className="border-t px-3 py-2 text-center text-[11px] text-muted-foreground sm:px-4">
+        <Badge variant="outline" className="gap-1.5 text-[10px] font-normal">
+          <DatabaseIcon className="size-3" aria-hidden="true" />
+          {t("storage.label")}: {storage ? t(`storage.mode.${storage.mode}`) : "—"}
+        </Badge>
+      </footer>
+
       <TaskSheet
         taskId={openTaskId}
-        onClose={() => setOpenTaskId(null)}
-        onOpenGoal={() => {
-          setOpenTaskId(null);
-          setView("goals");
+        onOpenChange={(open) => {
+          if (!open) setOpenTaskId(null);
         }}
       />
 
@@ -408,8 +357,50 @@ export function AppShell() {
         open={newTask.open}
         onOpenChange={(open) => setNewTask((current) => ({ ...current, open }))}
         defaultStatus={newTask.status}
-        defaultAssigneeId={assigneeFilter}
+        defaultAssigneeId={newTask.assigneeId}
       />
+
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("storage.resetTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("storage.resetDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void resetDemo();
+                setResetOpen(false);
+              }}
+            >
+              {t("action.reset")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+/** کارت آمار کوچک برای استفادهٔ بیرونی. */
+export function StatCard({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
+  return (
+    <Card className={cn("py-2", className)}>
+      <CardContent className="px-3">
+        <div className="text-lg font-semibold tabular-nums">{value}</div>
+        <div className="text-[11px] text-muted-foreground">{label}</div>
+      </CardContent>
+    </Card>
   );
 }

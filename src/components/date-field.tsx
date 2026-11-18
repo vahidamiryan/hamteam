@@ -1,19 +1,17 @@
 "use client";
 
 import * as React from "react";
-import {
-  CalendarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  XIcon,
-} from "lucide-react";
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
+import { useLocale } from "@/components/locale-provider";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { addDaysISO, formatJalali, todayISO, toFaDigits } from "@/lib/dates";
+import { Separator } from "@/components/ui/separator";
+import { addDaysISO, formatDate, formatNumber, todayISO } from "@/lib/dates";
 import {
   JALALI_WEEKDAYS,
   isoToJalali,
@@ -22,72 +20,114 @@ import {
   jalaliToISO,
   persianWeekdayIndex,
 } from "@/lib/jalali";
+import type { Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Cell = { iso: string; day: number } | null;
+type Cursor = { year: number; month: number };
 
-/**
- * انتخاب تاریخ با تقویم شمسی.
- * مقدار ذخیره‌شده در سرویس همیشه تاریخ میلادی «YYYY-MM-DD» است.
- */
+const GREGORIAN_WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function gregorianMonthLabel(locale: Locale, year: number, month: number) {
+  const date = new Date(year, month - 1, 1);
+  return new Intl.DateTimeFormat(locale === "fa" ? "fa-IR" : "en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function cursorFor(locale: Locale, iso: string): Cursor {
+  if (locale === "fa") {
+    const jalali = isoToJalali(iso);
+    if (jalali) return { year: jalali.jy, month: jalali.jm };
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  }
+  return { year: Number(match[1]), month: Number(match[2]) };
+}
+
+function cellsFor(locale: Locale, cursor: Cursor): Cell[] {
+  if (locale === "fa") {
+    const firstIso = jalaliToISO(cursor.year, cursor.month, 1);
+    const offset = persianWeekdayIndex(firstIso);
+    const length = jalaliMonthLength(cursor.year, cursor.month);
+    const list: Cell[] = Array.from({ length: offset }, () => null);
+    for (let day = 1; day <= length; day += 1) {
+      list.push({ iso: jalaliToISO(cursor.year, cursor.month, day), day });
+    }
+    return list;
+  }
+
+  const first = new Date(cursor.year, cursor.month - 1, 1);
+  const offset = first.getDay();
+  const length = new Date(cursor.year, cursor.month, 0).getDate();
+  const list: Cell[] = Array.from({ length: offset }, () => null);
+  for (let day = 1; day <= length; day += 1) {
+    const iso = `${cursor.year}-${String(cursor.month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    list.push({ iso, day });
+  }
+  return list;
+}
+
+function shiftCursor(locale: Locale, cursor: Cursor, delta: number): Cursor {
+  if (locale === "fa") {
+    let month = cursor.month + delta;
+    let year = cursor.year;
+    if (month < 1) {
+      month = 12;
+      year -= 1;
+    }
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+    return { year, month };
+  }
+  const date = new Date(cursor.year, cursor.month - 1 + delta, 1);
+  return { year: date.getFullYear(), month: date.getMonth() + 1 };
+}
+
+/** انتخاب تاریخ؛ در فارسی تقویم جلالی و در انگلیسی تقویم میلادی. */
 export function DateField({
   value,
   onChange,
-  placeholder = "بدون تاریخ",
-  className,
+  placeholder,
   triggerClassName,
   ariaLabel,
 }: {
   value: string | null;
   onChange: (value: string | null) => void;
   placeholder?: string;
-  className?: string;
   triggerClassName?: string;
   ariaLabel?: string;
 }) {
+  const { locale, t } = useLocale();
   const [open, setOpen] = React.useState(false);
   const [today, setToday] = React.useState<string | null>(null);
-  const [cursor, setCursor] = React.useState<{ jy: number; jm: number } | null>(
-    null,
-  );
+  const [cursor, setCursor] = React.useState<Cursor | null>(null);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (!next) return;
     const now = todayISO();
-    const base = isoToJalali(value ?? now);
     setToday(now);
-    if (base) setCursor({ jy: base.jy, jm: base.jm });
+    setCursor(cursorFor(locale, value ?? now));
   };
 
-  const cells = React.useMemo<Cell[]>(() => {
-    if (!cursor) return [];
-    const firstIso = jalaliToISO(cursor.jy, cursor.jm, 1);
-    const offset = persianWeekdayIndex(firstIso);
-    const length = jalaliMonthLength(cursor.jy, cursor.jm);
-    const list: Cell[] = Array.from({ length: offset }, () => null);
-    for (let day = 1; day <= length; day += 1) {
-      list.push({ iso: jalaliToISO(cursor.jy, cursor.jm, day), day });
-    }
-    return list;
-  }, [cursor]);
+  const cells = React.useMemo(
+    () => (cursor ? cellsFor(locale, cursor) : []),
+    [cursor, locale],
+  );
 
-  const shiftMonth = (delta: number) => {
-    setCursor((current) => {
-      if (!current) return current;
-      let month = current.jm + delta;
-      let year = current.jy;
-      if (month < 1) {
-        month = 12;
-        year -= 1;
-      }
-      if (month > 12) {
-        month = 1;
-        year += 1;
-      }
-      return { jy: year, jm: month };
-    });
-  };
+  const weekdays = locale === "fa" ? JALALI_WEEKDAYS : GREGORIAN_WEEKDAYS;
+  const monthLabel = cursor
+    ? locale === "fa"
+      ? jalaliMonthLabel(cursor.year, cursor.month)
+      : gregorianMonthLabel(locale, cursor.year, cursor.month)
+    : "";
 
   const pick = (iso: string) => {
     onChange(iso);
@@ -95,125 +135,127 @@ export function DateField({
   };
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
-      <Popover open={open} onOpenChange={handleOpenChange}>
-        <PopoverTrigger
-          aria-label={ariaLabel ?? "انتخاب تاریخ"}
-          className={cn(
-            "flex h-8 w-full min-w-0 items-center justify-between gap-1.5 rounded-lg border border-input bg-background px-2.5 text-[0.8rem] transition-colors outline-none hover:bg-muted/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 aria-expanded:bg-muted/50",
-            triggerClassName,
-          )}
-        >
-          <span className="flex min-w-0 items-center gap-1.5">
-            <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
-            {value ? (
-              <span className="truncate">{formatJalali(value)}</span>
-            ) : (
-              <span className="truncate text-muted-foreground">{placeholder}</span>
-            )}
-          </span>
-        </PopoverTrigger>
-
-        <PopoverContent align="end" className="w-64 p-2">
-          <div className="mb-1 flex items-center justify-between gap-1">
-            <button
-              type="button"
-              aria-label="ماه قبل"
-              onClick={() => shiftMonth(-1)}
-              className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              <ChevronRightIcon className="size-4" />
-            </button>
-            <span className="text-[0.8rem] font-medium">
-              {cursor ? jalaliMonthLabel(cursor.jy, cursor.jm) : ""}
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger
+        aria-label={ariaLabel ?? t("date.pick")}
+        render={<Button variant="outline" size="sm" />}
+        className={cn("w-full justify-between font-normal tabular-nums", triggerClassName)}
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          <CalendarIcon data-icon="inline-start" className="text-muted-foreground" />
+          {value ? (
+            <span className="truncate">{formatDate(locale, value)}</span>
+          ) : (
+            <span className="truncate text-muted-foreground">
+              {placeholder ?? t("date.none")}
             </span>
-            <button
-              type="button"
-              aria-label="ماه بعد"
-              onClick={() => shiftMonth(1)}
-              className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              <ChevronLeftIcon className="size-4" />
-            </button>
-          </div>
+          )}
+        </span>
+      </PopoverTrigger>
 
-          <div className="grid grid-cols-7 gap-0.5 pb-1 text-center text-[10px] text-muted-foreground">
-            {JALALI_WEEKDAYS.map((weekday) => (
-              <span key={weekday}>{weekday}</span>
-            ))}
-          </div>
+      <PopoverContent align="start" className="w-64 p-2">
+        <div className="mb-2 flex items-center justify-between gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("date.prevMonth")}
+            onClick={() =>
+              setCursor((current) =>
+                current ? shiftCursor(locale, current, -1) : current,
+              )
+            }
+          >
+            <ChevronRightIcon />
+          </Button>
+          <span className="text-xs font-medium">{monthLabel}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("date.nextMonth")}
+            onClick={() =>
+              setCursor((current) =>
+                current ? shiftCursor(locale, current, 1) : current,
+              )
+            }
+          >
+            <ChevronLeftIcon />
+          </Button>
+        </div>
 
-          <div className="grid grid-cols-7 gap-0.5">
-            {cells.map((cell, index) =>
-              cell ? (
-                <button
-                  key={cell.iso}
-                  type="button"
-                  onClick={() => pick(cell.iso)}
-                  className={cn(
-                    "flex h-7 items-center justify-center rounded-md text-[0.75rem] tabular-nums transition",
-                    cell.iso === value
-                      ? "bg-primary font-semibold text-primary-foreground"
-                      : "hover:bg-muted",
-                    cell.iso === today && cell.iso !== value && "ring-1 ring-primary/40",
-                  )}
-                >
-                  {toFaDigits(cell.day)}
-                </button>
-              ) : (
-                <span key={`empty-${index}`} />
-              ),
-            )}
-          </div>
+        <div className="grid grid-cols-7 gap-0.5 pb-1 text-center text-[10px] text-muted-foreground">
+          {weekdays.map((weekday) => (
+            <span key={weekday}>{weekday}</span>
+          ))}
+        </div>
 
-          <div className="mt-2 flex items-center gap-1 border-t pt-2 text-[0.72rem]">
-            <button
-              type="button"
-              onClick={() => pick(todayISO())}
-              className="rounded-md px-1.5 py-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              امروز
-            </button>
-            <button
-              type="button"
-              onClick={() => pick(addDaysISO(1))}
-              className="rounded-md px-1.5 py-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              فردا
-            </button>
-            <button
-              type="button"
-              onClick={() => pick(addDaysISO(7))}
-              className="rounded-md px-1.5 py-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            >
-              هفته بعد
-            </button>
-            {value ? (
-              <button
+        <div className="grid grid-cols-7 gap-0.5">
+          {cells.map((cell, index) =>
+            cell ? (
+              <Button
+                key={cell.iso}
                 type="button"
-                onClick={() => {
-                  onChange(null);
-                  setOpen(false);
-                }}
-                className="ms-auto rounded-md px-1.5 py-1 text-rose-600 transition hover:bg-rose-50"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => pick(cell.iso)}
+                className={cn(
+                  "tabular-nums",
+                  cell.iso === value && "bg-primary text-primary-foreground hover:bg-primary/80",
+                  cell.iso === today && cell.iso !== value && "ring-1 ring-primary/40",
+                )}
               >
-                پاک کردن
-              </button>
-            ) : null}
-          </div>
-        </PopoverContent>
-      </Popover>
+                {formatNumber(locale, cell.day)}
+              </Button>
+            ) : (
+              <span key={`empty-${index}`} />
+            ),
+          )}
+        </div>
 
-      {value ? (
-        <button
-          type="button"
-          aria-label="حذف تاریخ"
-          onClick={() => onChange(null)}
-          className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <XIcon className="size-3.5" />
-        </button>
-      ) : null}
-    </div>
+        <Separator className="my-2" />
+
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => pick(todayISO())}
+          >
+            {t("date.today")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => pick(addDaysISO(1))}
+          >
+            {t("date.tomorrow")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => pick(addDaysISO(7))}
+          >
+            {t("date.nextWeek")}
+          </Button>
+          {value ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="ms-auto text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+              }}
+            >
+              {t("action.clear")}
+            </Button>
+          ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

@@ -1,3 +1,4 @@
+import { randomAvatarIndex } from "./avatars";
 import { newId } from "./ids";
 import { ApiError } from "./http";
 import { resetWorkspace, updateWorkspace } from "./storage";
@@ -51,7 +52,9 @@ export const workspaceService = {
       const task: Task = {
         id,
         title: input.title,
+        titleEn: input.titleEn?.trim() || undefined,
         description: input.description?.trim() ?? "",
+        descriptionEn: input.descriptionEn?.trim() || undefined,
         status,
         priority: input.priority ?? "medium",
         assigneeId: input.assigneeId ?? null,
@@ -59,6 +62,8 @@ export const workspaceService = {
         dueDate: input.dueDate ?? null,
         blockedReason:
           status === "blocked" ? (input.blockedReason?.trim() || null) : null,
+        blockedReasonEn:
+          status === "blocked" ? input.blockedReasonEn?.trim() || undefined : undefined,
         createdAt: now,
         updatedAt: now,
         completedAt: status === "done" ? now : null,
@@ -81,7 +86,11 @@ export const workspaceService = {
       const now = new Date().toISOString();
 
       if (input.title !== undefined) task.title = input.title;
+      if (input.titleEn !== undefined) task.titleEn = input.titleEn.trim() || undefined;
       if (input.description !== undefined) task.description = input.description;
+      if (input.descriptionEn !== undefined) {
+        task.descriptionEn = input.descriptionEn.trim() || undefined;
+      }
       if (input.priority !== undefined) task.priority = input.priority;
       if (input.assigneeId !== undefined) task.assigneeId = input.assigneeId;
       if (input.goalId !== undefined) task.goalId = input.goalId;
@@ -89,6 +98,9 @@ export const workspaceService = {
 
       if (input.blockedReason !== undefined) {
         task.blockedReason = input.blockedReason?.trim() || null;
+      }
+      if (input.blockedReasonEn !== undefined) {
+        task.blockedReasonEn = input.blockedReasonEn.trim() || undefined;
       }
 
       if (input.status !== undefined && input.status !== task.status) {
@@ -133,6 +145,7 @@ export const workspaceService = {
         taskId,
         authorId: input.authorId,
         body: input.body,
+        bodyEn: input.bodyEn?.trim() || undefined,
         createdAt: new Date().toISOString(),
       };
       workspace.comments.push(comment);
@@ -171,8 +184,11 @@ export const workspaceService = {
       const member = {
         id,
         name: input.name,
+        nameEn: input.nameEn?.trim() || undefined,
         role: input.role?.trim() ?? "",
+        roleEn: input.roleEn?.trim() || undefined,
         email: input.email?.trim() ?? "",
+        avatarIndex: input.avatarIndex ?? randomAvatarIndex(),
         createdAt: new Date().toISOString(),
       };
       workspace.members.push(member);
@@ -189,8 +205,11 @@ export const workspaceService = {
       const member = workspace.members.find((item) => item.id === memberId);
       if (!member) throw new ApiError(404, "عضو پیدا نشد.");
       if (input.name !== undefined) member.name = input.name;
+      if (input.nameEn !== undefined) member.nameEn = input.nameEn.trim() || undefined;
       if (input.role !== undefined) member.role = input.role.trim();
+      if (input.roleEn !== undefined) member.roleEn = input.roleEn.trim() || undefined;
       if (input.email !== undefined) member.email = input.email.trim();
+      if (input.avatarIndex !== undefined) member.avatarIndex = input.avatarIndex;
       return member;
     }).then(({ workspace, storage, result }) => ({
       workspace,
@@ -225,7 +244,9 @@ export const workspaceService = {
       const goal = {
         id,
         title: input.title,
+        titleEn: input.titleEn?.trim() || undefined,
         description: input.description?.trim() ?? "",
+        descriptionEn: input.descriptionEn?.trim() || undefined,
         ownerId: input.ownerId ?? null,
         targetDate: input.targetDate ?? null,
         status: input.status ?? ("active" as const),
@@ -246,7 +267,11 @@ export const workspaceService = {
       if (!goal) throw new ApiError(404, "هدف پیدا نشد.");
       if (input.ownerId !== undefined) requireMember(workspace, input.ownerId);
       if (input.title !== undefined) goal.title = input.title;
+      if (input.titleEn !== undefined) goal.titleEn = input.titleEn.trim() || undefined;
       if (input.description !== undefined) goal.description = input.description.trim();
+      if (input.descriptionEn !== undefined) {
+        goal.descriptionEn = input.descriptionEn.trim() || undefined;
+      }
       if (input.ownerId !== undefined) goal.ownerId = input.ownerId;
       if (input.targetDate !== undefined) goal.targetDate = input.targetDate;
       if (input.status !== undefined) goal.status = input.status;

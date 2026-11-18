@@ -1,101 +1,104 @@
+import type { MessageKey } from "./i18n";
 import type { GoalStatus, Priority, TaskStatus } from "./types";
 
-export const STATUS_META: Record<
-  TaskStatus,
-  {
-    label: string;
-    hint: string;
-    dot: string;
-    chip: string;
-    /** رنگ نوار بالای ستون برد */
-    accent: string;
-  }
-> = {
+/**
+ * رنگ‌ها از توکن‌های معنایی می‌آیند (`--status-*` در globals.css)
+ * و برچسب‌ها از دیکشنری دو‌زبانه.
+ */
+
+export type StatusMeta = {
+  labelKey: MessageKey;
+  hintKey: MessageKey;
+  /** رنگ نقطه/نوار */
+  dot: string;
+  /** نشان کوچک */
+  chip: string;
+};
+
+export const STATUS_META: Record<TaskStatus, StatusMeta> = {
   backlog: {
-    label: "بک‌لاگ",
-    hint: "کارهایی که هنوز شروع نشده‌اند",
-    dot: "bg-slate-400",
-    chip: "bg-slate-100 text-slate-700",
-    accent: "bg-slate-400",
+    labelKey: "status.backlog",
+    hintKey: "status.backlogHint",
+    dot: "bg-status-backlog",
+    chip: "bg-status-backlog/12 text-status-backlog",
   },
   in_progress: {
-    label: "در حال انجام",
-    hint: "کارهایی که همین حالا رویشان کار می‌شود",
-    dot: "bg-indigo-500",
-    chip: "bg-indigo-50 text-indigo-700",
-    accent: "bg-indigo-500",
+    labelKey: "status.in_progress",
+    hintKey: "status.in_progressHint",
+    dot: "bg-status-progress",
+    chip: "bg-status-progress/12 text-status-progress",
   },
   pending: {
-    label: "در انتظار",
-    hint: "در انتظار بازبینی، تأیید یا پاسخ",
-    dot: "bg-amber-500",
-    chip: "bg-amber-50 text-amber-700",
-    accent: "bg-amber-500",
+    labelKey: "status.pending",
+    hintKey: "status.pendingHint",
+    dot: "bg-status-pending",
+    chip: "bg-status-pending/14 text-status-pending",
   },
   blocked: {
-    label: "مسدود",
-    hint: "به دلیل یک مانع بیرونی متوقف شده است",
-    dot: "bg-rose-500",
-    chip: "bg-rose-50 text-rose-700",
-    accent: "bg-rose-500",
+    labelKey: "status.blocked",
+    hintKey: "status.blockedHint",
+    dot: "bg-status-blocked",
+    chip: "bg-status-blocked/12 text-status-blocked",
   },
   done: {
-    label: "انجام‌شده",
-    hint: "کارهای تمام‌شده",
-    dot: "bg-emerald-500",
-    chip: "bg-emerald-50 text-emerald-700",
-    accent: "bg-emerald-500",
+    labelKey: "status.done",
+    hintKey: "status.doneHint",
+    dot: "bg-status-done",
+    chip: "bg-status-done/12 text-status-done",
   },
 };
 
-export const PRIORITY_META: Record<
-  Priority,
-  { label: string; bar: string; chip: string; weight: number }
-> = {
+export type PriorityMeta = StatusMeta & { weight: number };
+
+export const PRIORITY_META: Record<Priority, PriorityMeta> = {
   low: {
-    label: "کم",
-    bar: "bg-slate-300",
-    chip: "bg-slate-100 text-slate-600",
+    labelKey: "priority.low",
+    hintKey: "priority.low",
+    dot: "bg-status-backlog",
+    chip: "bg-status-backlog/12 text-status-backlog",
     weight: 1,
   },
   medium: {
-    label: "متوسط",
-    bar: "bg-sky-400",
-    chip: "bg-sky-50 text-sky-700",
+    labelKey: "priority.medium",
+    hintKey: "priority.medium",
+    dot: "bg-status-progress",
+    chip: "bg-status-progress/12 text-status-progress",
     weight: 2,
   },
   high: {
-    label: "بالا",
-    bar: "bg-orange-400",
-    chip: "bg-orange-50 text-orange-700",
+    labelKey: "priority.high",
+    hintKey: "priority.high",
+    dot: "bg-status-pending",
+    chip: "bg-status-pending/14 text-status-pending",
     weight: 3,
   },
   urgent: {
-    label: "فوری",
-    bar: "bg-rose-500",
-    chip: "bg-rose-50 text-rose-700",
+    labelKey: "priority.urgent",
+    hintKey: "priority.urgent",
+    dot: "bg-status-blocked",
+    chip: "bg-status-blocked/12 text-status-blocked",
     weight: 4,
   },
 };
 
-export const GOAL_STATUS_META: Record<
-  GoalStatus,
-  { label: string; chip: string; dot: string }
-> = {
+export const GOAL_STATUS_META: Record<GoalStatus, StatusMeta> = {
   active: {
-    label: "در جریان",
-    chip: "bg-indigo-50 text-indigo-700",
-    dot: "bg-indigo-500",
+    labelKey: "goalStatus.active",
+    hintKey: "goalStatus.active",
+    dot: "bg-status-progress",
+    chip: "bg-status-progress/12 text-status-progress",
   },
   achieved: {
-    label: "محقق شد",
-    chip: "bg-emerald-50 text-emerald-700",
-    dot: "bg-emerald-500",
+    labelKey: "goalStatus.achieved",
+    hintKey: "goalStatus.achieved",
+    dot: "bg-status-done",
+    chip: "bg-status-done/12 text-status-done",
   },
   paused: {
-    label: "متوقف",
-    chip: "bg-slate-100 text-slate-600",
-    dot: "bg-slate-400",
+    labelKey: "goalStatus.paused",
+    hintKey: "goalStatus.paused",
+    dot: "bg-status-backlog",
+    chip: "bg-status-backlog/12 text-status-backlog",
   },
 };
 
@@ -108,29 +111,13 @@ export const BOARD_COLUMNS: TaskStatus[] = [
   "done",
 ];
 
-const AVATAR_TONES = [
-  "bg-indigo-100 text-indigo-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-800",
-  "bg-rose-100 text-rose-700",
-  "bg-sky-100 text-sky-700",
-  "bg-violet-100 text-violet-700",
-  "bg-teal-100 text-teal-700",
-  "bg-orange-100 text-orange-800",
-];
+export const STATUS_ORDER: TaskStatus[] = BOARD_COLUMNS;
 
-/** رنگ آواتار هر عضو را به‌صورت پایدار از شناسه‌اش می‌سازد. */
-export function avatarTone(seed: string): string {
-  let hash = 0;
-  for (let index = 0; index < seed.length; index += 1) {
-    hash = (hash * 31 + seed.charCodeAt(index)) % 100000;
-  }
-  return AVATAR_TONES[hash % AVATAR_TONES.length];
-}
+export const PRIORITY_ORDER: Priority[] = ["low", "medium", "high", "urgent"];
 
 export function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "؟";
+  if (parts.length === 0) return "·";
   if (parts.length === 1) return parts[0].slice(0, 2);
   return `${parts[0].charAt(0)}${parts[1].charAt(0)}`;
 }

@@ -1,27 +1,40 @@
 import type { Metadata, Viewport } from "next";
 
-import { Toaster } from "@/components/ui/sonner";
+import { LocaleProvider } from "@/components/locale-provider";
+import { Toaster } from "@/components/ui/toast";
 import { WorkspaceProvider } from "@/components/workspace-provider";
+import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY } from "@/lib/i18n";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "هم‌تیم — مدیریت تسک و تیم",
   description:
-    "برد ساده‌ی تسک‌ها با وضعیت بک‌لاگ، در حال انجام، در انتظار و مسدود؛ همراه با اعضای تیم، اهداف، سررسید و کامنت‌های همفکری.",
-  applicationName: "هم‌تیم",
+    "برد ساده‌ی تسک‌ها با وضعیت بک‌لاگ، در حال انجام، در انتظار و مسدود؛ همراه با اعضای تیم، اهداف، سررسید و کامنت‌های همفکری. دوزبانه (فارسی/انگلیسی).",
+  applicationName: "HamTeam",
 };
 
 export const viewport: Viewport = {
   themeColor: "#4f46e5",
 };
 
+/**
+ * زبان و جهت پیش از رنگ‌آمیزی صفحه ست می‌شوند تا پرش (FOUC) رخ ندهد.
+ */
+const bootstrapScript = `(function(){try{var k="${LOCALE_STORAGE_KEY}";var v=localStorage.getItem(k);var l=v==="en"?"en":"${DEFAULT_LOCALE}";var r=document.documentElement;r.lang=l;r.dir=l==="fa"?"rtl":"ltr";}catch(e){}})();`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fa" dir="rtl" className="h-full">
+    <html lang={DEFAULT_LOCALE} dir="rtl" className="h-full" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: bootstrapScript }} />
+      </head>
       <body className="min-h-full antialiased">
-        <WorkspaceProvider>{children}</WorkspaceProvider>
-        <Toaster position="top-center" dir="rtl" theme="light" closeButton />
+        <LocaleProvider>
+          <Toaster>
+            <WorkspaceProvider>{children}</WorkspaceProvider>
+          </Toaster>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -1,36 +1,40 @@
 "use client";
 
 import * as React from "react";
-import { CircleCheckIcon, MessageSquareIcon } from "lucide-react";
+import { MessageSquareIcon } from "lucide-react";
 
-import { DueChip, GoalChip } from "@/components/chips";
-import { MemberAvatar, UnassignedAvatar } from "@/components/member-avatar";
-import { toFaDigits } from "@/lib/dates";
-import { PRIORITY_META } from "@/lib/labels";
-import type { Goal, Member, Task } from "@/lib/types";
+import { DueChip, DoneChip, GoalTag, PriorityChip } from "@/components/chips";
+import { MemberAvatar } from "@/components/member-avatar";
+import { useLocale } from "@/components/locale-provider";
+import { useWorkspace } from "@/components/workspace-provider";
+import { goalTitle, memberName, taskBlocker, taskTitle } from "@/lib/locale-text";
 import { cn } from "@/lib/utils";
+import type { Task } from "@/lib/types";
 
 export function TaskCard({
   task,
-  assignee,
-  goal,
-  commentCount,
-  isDragging,
   onOpen,
   onDragStart,
   onDragEnd,
+  dragging,
+  className,
 }: {
   task: Task;
-  assignee: Member | null;
-  goal: Goal | null;
-  commentCount: number;
-  isDragging: boolean;
   onOpen: () => void;
-  onDragStart: (event: React.DragEvent<HTMLElement>) => void;
-  onDragEnd: () => void;
+  onDragStart?: (event: React.DragEvent<HTMLElement>) => void;
+  onDragEnd?: () => void;
+  dragging?: boolean;
+  className?: string;
 }) {
-  const isBlocked = task.status === "blocked";
-  const isDone = task.status === "done";
+  const { locale, t, formatNumber } = useLocale();
+  const { workspace } = useWorkspace();
+
+  const assignee =
+    workspace?.members.find((member) => member.id === task.assigneeId) ?? null;
+  const goal = workspace?.goals.find((item) => item.id === task.goalId) ?? null;
+  const commentCount =
+    workspace?.comments.filter((comment) => comment.taskId === task.id).length ?? 0;
+  const blocker = taskBlocker(locale, task);
 
   return (
     <article
@@ -46,76 +50,47 @@ export function TaskCard({
       }}
       role="button"
       tabIndex={0}
-      aria-label={`تسک ${task.title}`}
+      aria-label={t("action.openTask")}
+      data-dragging={dragging ? "true" : undefined}
       className={cn(
-        "group relative cursor-pointer select-none rounded-xl border bg-card p-2.5 text-start shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition duration-150",
-        "hover:-translate-y-px hover:border-foreground/15 hover:shadow-[0_8px_18px_-12px_rgba(16,24,40,0.35)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-        isBlocked && "border-rose-200/90 bg-rose-50/40",
-        isDone && "opacity-75",
-        isDragging && "scale-[0.98] opacity-40",
+        "group/card cursor-grab rounded-xl border border-border/80 bg-card p-3 text-start shadow-xs transition-[box-shadow,border-color,transform,opacity] outline-none select-none",
+        "hover:border-ring/50 hover:shadow-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+        "data-dragging:opacity-40 active:cursor-grabbing",
+        className,
       )}
     >
-      <div className="flex items-start gap-2.5">
-        <span
-          className={cn(
-            "mt-0.5 h-8 w-[3px] shrink-0 rounded-full",
-            PRIORITY_META[task.priority].bar,
-          )}
-          aria-hidden
-        />
-        <div className="min-w-0 flex-1">
-          {goal ? <GoalChip goal={goal} className="mb-1.5" /> : null}
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="line-clamp-2 text-sm leading-6 font-medium">
+          {taskTitle(locale, task)}
+        </h3>
+        {task.status === "done" ? <DoneChip className="shrink-0" /> : null}
+      </div>
 
-          <h3
-            className={cn(
-              "line-clamp-2 text-[0.86rem] font-medium leading-6",
-              isDone && "text-muted-foreground line-through decoration-muted-foreground/40",
-            )}
-          >
-            {task.title}
-          </h3>
+      {task.status === "blocked" && blocker ? (
+        <p className="mt-2 line-clamp-2 rounded-md bg-status-blocked/10 px-2 py-1 text-[11px] leading-5 text-status-blocked">
+          {blocker}
+        </p>
+      ) : null}
 
-          {isBlocked && task.blockedReason ? (
-            <p className="mt-1.5 line-clamp-2 rounded-md bg-rose-100/70 px-1.5 py-1 text-[11px] leading-5 text-rose-800">
-              {task.blockedReason}
-            </p>
-          ) : null}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <PriorityChip priority={task.priority} />
+        {task.status !== "done" ? <DueChip dueDate={task.dueDate} /> : null}
+        {goal ? <GoalTag title={goalTitle(locale, goal)} /> : null}
+      </div>
 
-          <div className="mt-2 flex items-center gap-1.5">
-            {isDone ? (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">
-                <CircleCheckIcon className="size-3" />
-                انجام شد
-              </span>
-            ) : (
-              <DueChip dueDate={task.dueDate} />
-            )}
-            {task.priority === "urgent" && !isDone ? (
-              <span className="rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">
-                فوری
-              </span>
-            ) : null}
-            <span className="ms-auto flex items-center gap-1.5">
-              {commentCount > 0 ? (
-                <span className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground">
-                  <MessageSquareIcon className="size-3.5" />
-                  {toFaDigits(commentCount)}
-                </span>
-              ) : null}
-              {assignee ? (
-                <MemberAvatar
-                  name={assignee.name}
-                  memberId={assignee.id}
-                  size="sm"
-                  className="ring-2 ring-card"
-                />
-              ) : (
-                <UnassignedAvatar size="sm" className="bg-card" />
-              )}
-            </span>
-          </div>
+      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/70 pt-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <MemberAvatar member={assignee} size="sm" withCard />
+          <span className="truncate text-[11px] text-muted-foreground">
+            {assignee ? memberName(locale, assignee) : t("task.unassigned")}
+          </span>
         </div>
+        {commentCount > 0 ? (
+          <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
+            <MessageSquareIcon className="size-3.5" aria-hidden="true" />
+            {formatNumber(commentCount)}
+          </span>
+        ) : null}
       </div>
     </article>
   );

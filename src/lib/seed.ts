@@ -2,8 +2,8 @@ import { addDaysISO } from "./dates";
 import type { Comment, Goal, Member, Task, Workspace } from "./types";
 
 /**
- * داده‌ی نمونه‌ی اولیه. تاریخ‌ها نسبت به «امروز» ساخته می‌شوند
- * تا برد در اولین اجرا خالی و بی‌روح نباشد.
+ * دادهٔ نمونهٔ اولیه به هر دو زبان، تا در نمای فارسی و انگلیسی هر دو خوانا باشد.
+ * تاریخ‌ها نسبت به «امروز» ساخته می‌شوند تا برد در اولین اجرا خالی نباشد.
  */
 export function seedWorkspace(now: Date = new Date()): Workspace {
   const createdAt = now.toISOString();
@@ -16,18 +16,66 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
   };
 
   const members: Member[] = [
-    { id: "mem_sara", name: "سارا محمدی", role: "مدیر محصول", email: "sara@hamteam.ir", createdAt },
-    { id: "mem_amir", name: "امیر رضایی", role: "توسعه‌دهنده فرانت‌اند", email: "amir@hamteam.ir", createdAt },
-    { id: "mem_negar", name: "نگار کاظمی", role: "طراح محصول", email: "negar@hamteam.ir", createdAt },
-    { id: "mem_hossein", name: "حسین توکلی", role: "توسعه‌دهنده بک‌اند", email: "hossein@hamteam.ir", createdAt },
-    { id: "mem_maryam", name: "مریم اکبری", role: "کنترل کیفیت", email: "maryam@hamteam.ir", createdAt },
+    {
+      id: "mem_sara",
+      name: "سارا محمدی",
+      nameEn: "Sara Mohammadi",
+      role: "مدیر محصول",
+      roleEn: "Product manager",
+      email: "sara@hamteam.ir",
+      avatarIndex: 3,
+      createdAt,
+    },
+    {
+      id: "mem_amir",
+      name: "امیر رضایی",
+      nameEn: "Amir Rezaei",
+      role: "توسعه‌دهنده فرانت‌اند",
+      roleEn: "Frontend developer",
+      email: "amir@hamteam.ir",
+      avatarIndex: 4,
+      createdAt,
+    },
+    {
+      id: "mem_negar",
+      name: "نگار کاظمی",
+      nameEn: "Negar Kazemi",
+      role: "طراح محصول",
+      roleEn: "Product designer",
+      email: "negar@hamteam.ir",
+      avatarIndex: 2,
+      createdAt,
+    },
+    {
+      id: "mem_hossein",
+      name: "حسین توکلی",
+      nameEn: "Hossein Tavakoli",
+      role: "توسعه‌دهنده بک‌اند",
+      roleEn: "Backend developer",
+      email: "hossein@hamteam.ir",
+      avatarIndex: 1,
+      createdAt,
+    },
+    {
+      id: "mem_maryam",
+      name: "مریم اکبری",
+      nameEn: "Maryam Akbari",
+      role: "کنترل کیفیت",
+      roleEn: "QA engineer",
+      email: "maryam@hamteam.ir",
+      avatarIndex: 8,
+      createdAt,
+    },
   ];
 
   const goals: Goal[] = [
     {
       id: "goal_v1",
       title: "انتشار نسخه ۱.۰ محصول",
-      description: "برد تسک‌ها، اعضای تیم و اهداف باید تا پایان فصل آماده استفاده‌ی تیم باشد.",
+      titleEn: "Ship version 1.0",
+      description: "برد تسک‌ها، اعضای تیم و اهداف باید تا پایان فصل آماده استفادهٔ تیم باشد.",
+      descriptionEn:
+        "The board, members and goals should be ready for the team by the end of the quarter.",
       ownerId: "mem_sara",
       targetDate: day(21),
       status: "active",
@@ -36,7 +84,10 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "goal_reports",
       title: "راه‌اندازی پنل گزارش تیمی",
+      titleEn: "Launch the team reports panel",
       description: "گزارش هفتگی بار کاری هر عضو و خروجی CSV برای جلسه‌های بازبینی.",
+      descriptionEn:
+        "Weekly per-member workload report with CSV export for review meetings.",
       ownerId: "mem_hossein",
       targetDate: day(45),
       status: "active",
@@ -45,7 +96,9 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "goal_review",
       title: "کاهش زمان بازبینی کد به زیر ۲۴ ساعت",
+      titleEn: "Cut code review time under 24 hours",
       description: "هر درخواست ادغام حداکثر یک روز کاری در انتظار بماند.",
+      descriptionEn: "Every pull request should wait at most one working day.",
       ownerId: "mem_amir",
       targetDate: day(-2),
       status: "paused",
@@ -57,7 +110,11 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_board",
       title: "پیاده‌سازی برد کشیدنی تسک‌ها",
-      description: "کارت‌ها باید بین چهار وضعیت بک‌لاگ، در حال انجام، در انتظار و مسدود جابه‌جا شوند.",
+      titleEn: "Build the drag-and-drop task board",
+      description:
+        "کارت‌ها باید بین چهار وضعیت بک‌لاگ، در حال انجام، در انتظار و مسدود جابه‌جا شوند.",
+      descriptionEn:
+        "Cards should move between backlog, in progress, pending and blocked.",
       status: "in_progress",
       priority: "high",
       assigneeId: "mem_amir",
@@ -71,7 +128,10 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_comments",
       title: "طراحی سیستم کامنت و همفکری روی تسک",
+      titleEn: "Design the per-task discussion",
       description: "هر تسک یک رشته گفت‌وگو داشته باشد تا تصمیم‌ها در همان‌جا بماند.",
+      descriptionEn:
+        "Every task gets a conversation so decisions stay next to the work.",
       status: "in_progress",
       priority: "high",
       assigneeId: "mem_negar",
@@ -85,7 +145,10 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_api",
       title: "ساخت API تسک‌ها، اعضا و اهداف",
+      titleEn: "Build the tasks, members and goals API",
       description: "سرویس REST برای ساخت، ویرایش و حذف تسک، عضو، هدف و کامنت.",
+      descriptionEn:
+        "REST service to create, update and delete tasks, members, goals and messages.",
       status: "in_progress",
       priority: "urgent",
       assigneeId: "mem_hossein",
@@ -99,7 +162,10 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_a11y",
       title: "بازبینی دسترس‌پذیری فرم‌ها",
-      description: "برچسب‌ها، ترتیب فوکوس و کنتراست رنگ‌ها در همه‌ی دیالوگ‌ها بررسی شود.",
+      titleEn: "Audit form accessibility",
+      description: "برچسب‌ها، ترتیب فوکوس و کنتراست رنگ‌ها در همهٔ دیالوگ‌ها بررسی شود.",
+      descriptionEn:
+        "Check labels, focus order and contrast in every dialog.",
       status: "pending",
       priority: "medium",
       assigneeId: "mem_maryam",
@@ -113,7 +179,11 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_blocked_flow",
       title: "تست سناریوی تسک مسدود",
-      description: "ساخت تسک مسدود باید دلیل مسدودی را اجباری کند و در برد قابل مشاهده باشد.",
+      titleEn: "Test the blocked-task flow",
+      description:
+        "ساخت تسک مسدود باید دلیل مسدودی را اجباری کند و در برد قابل مشاهده باشد.",
+      descriptionEn:
+        "Creating a blocked task should require a reason and show it on the board.",
       status: "pending",
       priority: "medium",
       assigneeId: "mem_maryam",
@@ -127,13 +197,16 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_email",
       title: "اتصال به سرویس ایمیل برای دعوت اعضا",
+      titleEn: "Connect an email service for invites",
       description: "ارسال دعوت‌نامه با لینک ورود به فضای کاری.",
+      descriptionEn: "Send invitation emails with a link into the workspace.",
       status: "blocked",
       priority: "high",
       assigneeId: "mem_hossein",
       goalId: "goal_reports",
       dueDate: day(7),
       blockedReason: "منتظر تأیید دامنه و کلید API از تیم زیرساخت",
+      blockedReasonEn: "Waiting for domain verification and an API key from infra",
       createdAt: at(-9),
       updatedAt: at(-2),
       completedAt: null,
@@ -141,13 +214,17 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_calendar",
       title: "رفع اختلاف تقویم شمسی در نمایش سررسید",
+      titleEn: "Fix the calendar mismatch on due dates",
       description: "در برخی مرورگرها تاریخ میلادی نمایش داده می‌شود؛ باید همیشه شمسی باشد.",
+      descriptionEn:
+        "Some browsers fall back to Gregorian dates; it should always match the chosen locale.",
       status: "blocked",
       priority: "medium",
       assigneeId: "mem_amir",
       goalId: "goal_v1",
       dueDate: day(4),
       blockedReason: "نیاز به بررسی خروجی Intl در سافاری نسخه‌های قدیمی",
+      blockedReasonEn: "Needs an Intl output check on older Safari versions",
       createdAt: at(-8),
       updatedAt: at(-3),
       completedAt: null,
@@ -155,7 +232,9 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_notifications",
       title: "طراحی صفحه تنظیمات اعلان‌ها",
+      titleEn: "Design the notification settings page",
       description: "انتخاب اینکه هر عضو برای چه رویدادی اعلان بگیرد.",
+      descriptionEn: "Let each member choose which events trigger a notification.",
       status: "backlog",
       priority: "medium",
       assigneeId: "mem_negar",
@@ -169,7 +248,9 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_csv",
       title: "افزودن خروجی CSV از گزارش‌ها",
+      titleEn: "Add CSV export for reports",
       description: "",
+      descriptionEn: "",
       status: "backlog",
       priority: "low",
       assigneeId: "mem_hossein",
@@ -183,7 +264,10 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_oauth",
       title: "بررسی امکان ورود با گوگل",
+      titleEn: "Evaluate Google sign-in",
       description: "فعلاً ورود با انتخاب پروفایل کافی است؛ این مورد برای فاز بعد ارزیابی شود.",
+      descriptionEn:
+        "Picking a profile is enough for now; evaluate OAuth in the next phase.",
       status: "backlog",
       priority: "low",
       assigneeId: "mem_sara",
@@ -197,7 +281,9 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_dashboard",
       title: "طراحی اولیه داشبورد تیم",
+      titleEn: "First pass on the team dashboard",
       description: "نمای کلی از بار کاری هر عضو و تسک‌های نزدیک به سررسید.",
+      descriptionEn: "An overview of each member's workload and upcoming due dates.",
       status: "done",
       priority: "medium",
       assigneeId: "mem_negar",
@@ -211,7 +297,9 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_docs",
       title: "نوشتن مستندات راه‌اندازی",
+      titleEn: "Write the setup docs",
       description: "راهنمای اجرای محلی و استقرار روی Vercel.",
+      descriptionEn: "Local run and Vercel deployment guide.",
       status: "done",
       priority: "low",
       assigneeId: "mem_sara",
@@ -225,7 +313,9 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
     {
       id: "task_schema",
       title: "ساخت اسکیمای اولیه فضای کاری",
+      titleEn: "Create the initial workspace schema",
       description: "ساختار تسک، عضو، هدف و کامنت تثبیت شد.",
+      descriptionEn: "Settled the shape of tasks, members, goals and messages.",
       status: "done",
       priority: "high",
       assigneeId: "mem_hossein",
@@ -244,6 +334,7 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
       taskId: "task_board",
       authorId: "mem_negar",
       body: "برای کارت‌های مسدود، به‌جای فقط رنگ، دلیل مسدودی هم روی کارت بیاید؟",
+      bodyEn: "Instead of just a color, should blocked cards show the reason too?",
       createdAt: at(-1, 11),
     },
     {
@@ -251,6 +342,8 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
       taskId: "task_board",
       authorId: "mem_amir",
       body: "آره، یک نوار وضعیت بالای کارت گذاشتم و دلیل مسدودی زیر عنوان نمایش داده می‌شود.",
+      bodyEn:
+        "Yes — I added a status stripe and the reason now shows under the title.",
       createdAt: at(-1, 13),
     },
     {
@@ -258,6 +351,8 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
       taskId: "task_comments",
       authorId: "mem_sara",
       body: "امکان منشن کردن عضو تیم را برای فاز بعد در نظر بگیریم، الان فقط گفت‌وگوی ساده کافی است.",
+      bodyEn:
+        "Let's consider @mentions next phase; a plain conversation is enough for now.",
       createdAt: at(-2, 9),
     },
     {
@@ -265,6 +360,8 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
       taskId: "task_email",
       authorId: "mem_hossein",
       body: "کلید API هنوز نرسیده؛ تا آن موقع با صف موقت جلو می‌روم و بعد سوئیچ می‌کنم.",
+      bodyEn:
+        "API key hasn't arrived yet. I'll use a temporary queue and switch later.",
       createdAt: at(-2, 15),
     },
     {
@@ -272,6 +369,8 @@ export function seedWorkspace(now: Date = new Date()): Workspace {
       taskId: "task_calendar",
       authorId: "mem_maryam",
       body: "روی سافاری ۱۶ هم همین مشکل را دیدم؛ اگر لازم شد تستش را اضافه می‌کنم.",
+      bodyEn:
+        "I saw the same on Safari 16 — I'll add a regression test if needed.",
       createdAt: at(-3, 12),
     },
   ];

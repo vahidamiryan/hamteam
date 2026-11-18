@@ -46,6 +46,7 @@ type WorkspaceContextValue = {
     taskId: string,
     body: string,
     bodyEn?: string,
+    attachments?: string[],
   ) => Promise<WorkspacePayload | null>;
   deleteComment: (commentId: string) => Promise<WorkspacePayload | null>;
   createMember: (input: MemberCreateInput) => Promise<WorkspacePayload | null>;
@@ -289,13 +290,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           success: t("toast.taskDeleted"),
         }),
 
-      addComment: (taskId, body, bodyEn) => {
+      addComment: (taskId, body, bodyEn, attachments) => {
         if (!actorId) {
           toast.add({ title: t("toast.noMember"), type: "error" });
           return Promise.resolve(null);
         }
         return mutate({
-          request: () => api.addComment(taskId, { authorId: actorId, body, bodyEn }),
+          request: () =>
+            api.addComment(taskId, {
+              authorId: actorId,
+              body,
+              bodyEn,
+              attachments,
+            }),
         });
       },
 

@@ -23,6 +23,7 @@ import { PeopleView } from "@/components/people-view";
 import { TableView } from "@/components/table-view";
 import { TaskSheet } from "@/components/task-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useTaskActivity } from "@/lib/task-activity";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -97,8 +98,33 @@ export function AppShell() {
   }>({ open: false, status: "backlog", assigneeId: null });
   const [resetOpen, setResetOpen] = React.useState(false);
 
+  const {
+    getTaskActivity,
+    markTaskSeen,
+    markAllSeen,
+    unreadTasksCount,
+  } = useTaskActivity(workspace, currentUser);
+
+  const activityMap = React.useMemo(() => {
+    if (!workspace) return {};
+    const map: Record<string, { hasChanges: boolean; hasUnreadMention: boolean }> = {};
+    workspace.tasks.forEach((t) => {
+      const act = getTaskActivity(t);
+      map[t.id] = { hasChanges: act.hasChanges, hasUnreadMention: act.hasUnreadMention };
+    });
+    return map;
+  }, [workspace, getTaskActivity]);
+
+  const activeFilters = React.useMemo(
+    () => ({
+      ...filters,
+      activityMap,
+    }),
+    [filters, activityMap],
+  );
+
   const stats = workspace ? workspaceStats(workspace) : null;
-  const filtered = workspace ? filterTasks(workspace, filters) : [];
+  const filtered = workspace ? filterTasks(workspace, activeFilters) : [];
 
   const openNewTask = (taskStatus: TaskStatus = "backlog") =>
     setNewTask({
@@ -315,19 +341,26 @@ export function AppShell() {
                 filters={filters}
                 onChange={setFilters}
                 resultCount={filtered.length}
+                unreadCount={unreadTasksCount}
+                onMarkAllSeen={markAllSeen}
               />
             ) : null}
 
             {view === "board" ? (
               <BoardView
-                filters={filters}
+                filters={activeFilters}
                 onOpenTask={setOpenTaskId}
                 onAddTask={openNewTask}
+                getActivity={getTaskActivity}
               />
             ) : null}
 
             {view === "table" ? (
-              <TableView filters={filters} onOpenTask={setOpenTaskId} />
+              <TableView
+                filters={activeFilters}
+                onOpenTask={setOpenTaskId}
+                getActivity={getTaskActivity}
+              />
             ) : null}
 
             {view === "people" ? (
@@ -371,6 +404,7 @@ export function AppShell() {
         onOpenChange={(open) => {
           if (!open) setOpenTaskId(null);
         }}
+        onSeen={markTaskSeen}
       />
 
       <NewTaskDialog

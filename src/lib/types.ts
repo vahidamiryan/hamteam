@@ -58,6 +58,8 @@ export interface Comment {
   authorId: string;
   body: string;
   bodyEn?: string;
+  /** پیوست‌های تصویری به صورت Data URL یا لینک */
+  attachments?: string[];
   createdAt: string;
 }
 

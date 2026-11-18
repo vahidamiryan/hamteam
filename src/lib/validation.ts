@@ -40,15 +40,22 @@ export const taskCreateSchema = z.object({
 
 export const taskUpdateSchema = taskCreateSchema.partial();
 
-export const commentCreateSchema = z.object({
-  authorId: z.string().trim().min(1, "نویسنده‌ی کامنت مشخص نیست."),
-  body: z
-    .string()
-    .trim()
-    .min(1, "متن کامنت خالی است.")
-    .max(2000, "کامنت حداکثر ۲۰۰۰ کاراکتر است."),
-  bodyEn: optionalText(2000),
-});
+export const commentCreateSchema = z
+  .object({
+    authorId: z.string().trim().min(1, "نویسنده‌ی کامنت مشخص نیست."),
+    body: z.string().trim().max(4000, "کامنت حداکثر ۴۰۰۰ کاراکتر است.").default(""),
+    bodyEn: optionalText(4000),
+    attachments: z
+      .array(z.string())
+      .max(6, "حداکثر ۶ تصویر هم‌زمان قابل پیوست است.")
+      .optional(),
+  })
+  .refine(
+    (data) => data.body.length > 0 || (data.attachments && data.attachments.length > 0),
+    {
+      message: "متن کامنت یا حداقل یک تصویر باید ارسال شود.",
+    },
+  );
 
 export const memberCreateSchema = z.object({
   name: title(80, "نام عضو"),

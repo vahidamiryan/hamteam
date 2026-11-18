@@ -26,14 +26,17 @@ import { cn } from "@/lib/utils";
 import { formatDateShort } from "@/lib/dates";
 import { goalTitle, memberName, taskTitle } from "@/lib/locale-text";
 import { STATUS_META } from "@/lib/labels";
+import type { TaskActivityState } from "@/lib/task-activity";
 import type { Task } from "@/lib/types";
 
 export function TableView({
   filters,
   onOpenTask,
+  getActivity,
 }: {
   filters: TaskFilterOptions;
   onOpenTask: (taskId: string) => void;
+  getActivity?: (task: Task) => TaskActivityState;
 }) {
   const { locale, t, formatNumber } = useLocale();
   const { workspace, updateTask, deleteTask } = useWorkspace();
@@ -163,16 +166,38 @@ export function TableView({
                       />
                     </TableCell>
                     <TableCell>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onOpenTask(task.id);
-                        }}
-                        className="line-clamp-2 text-start text-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:underline"
-                      >
-                        {taskTitle(locale, task)}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const act = getActivity?.(task);
+                          if (act?.hasUnreadMention) {
+                            return (
+                              <span
+                                className="size-2 shrink-0 rounded-full bg-amber-500 animate-pulse"
+                                title={t("task.mentionedYou")}
+                              />
+                            );
+                          }
+                          if (act?.hasChanges) {
+                            return (
+                              <span
+                                className="size-2 shrink-0 rounded-full bg-primary animate-pulse"
+                                title={t("task.hasChanges")}
+                              />
+                            );
+                          }
+                          return null;
+                        })()}
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onOpenTask(task.id);
+                          }}
+                          className="line-clamp-2 text-start text-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:underline"
+                        >
+                          {taskTitle(locale, task)}
+                        </button>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <StatusChip status={task.status} />

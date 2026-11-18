@@ -144,8 +144,12 @@ export const workspaceService = {
         id,
         taskId,
         authorId: input.authorId,
-        body: input.body,
+        body: input.body ?? "",
         bodyEn: input.bodyEn?.trim() || undefined,
+        attachments:
+          input.attachments && input.attachments.length > 0
+            ? input.attachments
+            : undefined,
         createdAt: new Date().toISOString(),
       };
       workspace.comments.push(comment);

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { BellIcon, CheckCheckIcon, SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
 
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
@@ -33,11 +33,15 @@ export function FilterBar({
   filters,
   onChange,
   resultCount,
+  unreadCount = 0,
+  onMarkAllSeen,
   className,
 }: {
   filters: TaskFilterOptions;
   onChange: (next: TaskFilterOptions) => void;
   resultCount: number;
+  unreadCount?: number;
+  onMarkAllSeen?: () => void;
   className?: string;
 }) {
   const { locale, t, formatNumber } = useLocale();
@@ -60,12 +64,20 @@ export function FilterBar({
   const activeCount =
     (filters.assigneeId ? 1 : 0) +
     (filters.onlyOverdue ? 1 : 0) +
+    (filters.onlyTracking ? 1 : 0) +
+    (filters.onlyMentioned ? 1 : 0) +
     ((filters.search ?? "") ? 1 : 0);
   const hasFilters = activeCount > 0;
 
   const clearAll = () => {
     setSearch("");
-    onChange({ search: "", assigneeId: null, onlyOverdue: false });
+    onChange({
+      search: "",
+      assigneeId: null,
+      onlyOverdue: false,
+      onlyTracking: false,
+      onlyMentioned: false,
+    });
   };
 
   return (
@@ -137,6 +149,22 @@ export function FilterBar({
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem
+            checked={Boolean(filters.onlyTracking)}
+            onCheckedChange={(checked) =>
+              onChange({ ...filters, onlyTracking: checked === true })
+            }
+          >
+            {t("filter.trackingOnly")}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={Boolean(filters.onlyMentioned)}
+            onCheckedChange={(checked) =>
+              onChange({ ...filters, onlyMentioned: checked === true })
+            }
+          >
+            {t("filter.onlyMentioned")}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
             checked={Boolean(filters.onlyOverdue)}
             onCheckedChange={(checked) =>
               onChange({ ...filters, onlyOverdue: checked === true })
@@ -152,6 +180,49 @@ export function FilterBar({
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* دکمه اختصاصی فیلتر تغییرات جدید و پیگیری */}
+      <Button
+        variant={filters.onlyTracking ? "default" : "outline"}
+        size="sm"
+        onClick={() => onChange({ ...filters, onlyTracking: !filters.onlyTracking })}
+        className={cn(
+          "h-8 gap-1.5 text-xs font-normal transition-all",
+          filters.onlyTracking
+            ? "bg-primary text-primary-foreground"
+            : unreadCount > 0
+              ? "border-primary/40 text-foreground hover:bg-primary/5"
+              : "text-muted-foreground",
+        )}
+      >
+        <BellIcon className={cn("size-3.5", unreadCount > 0 && "text-primary")} />
+        <span>{t("filter.trackingOnly")}</span>
+        {unreadCount > 0 ? (
+          <span
+            className={cn(
+              "rounded-full px-1.5 py-0.2 text-[10px] tabular-nums font-semibold",
+              filters.onlyTracking
+                ? "bg-primary-foreground/20 text-primary-foreground"
+                : "bg-primary/15 text-primary",
+            )}
+          >
+            {formatNumber(unreadCount)}
+          </span>
+        ) : null}
+      </Button>
+
+      {filters.onlyTracking && onMarkAllSeen && unreadCount > 0 ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onMarkAllSeen}
+          className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          title={t("task.markAllRead")}
+        >
+          <CheckCheckIcon className="size-3.5" />
+          <span className="hidden sm:inline">{t("task.markAllRead")}</span>
+        </Button>
+      ) : null}
 
       {hasFilters ? (
         <span className="text-xs text-muted-foreground tabular-nums">

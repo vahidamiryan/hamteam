@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // pg یک پکیج مخصوص Node است و نباید داخل باندل سرور بسته‌بندی شود.
+  serverExternalPackages: ["pg"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

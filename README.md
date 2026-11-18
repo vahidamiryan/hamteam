@@ -1,36 +1,147 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# هم‌تیم (HamTeam)
 
-## Getting Started
+اپلیکیشن سادهٔ مدیریت تسک و همکاری تیمی: برد کشیدنی، گفت‌وگوی تیمی روی هر تسک، اعضای تیم با آواتار مجزا، هدف‌گذاری بلندمدت و سررسید شمسی.
 
-First, run the development server:
+کاملاً فارسی و راست‌به‌چپ، با تقویم جلالی و ارقام فارسی. آمادهٔ استقرار روی Vercel (و هر پلتفرم Node دیگر).
+
+---
+
+## امکانات
+
+- **برد کارها** با پنج ستون: بک‌لاگ، در حال انجام، در انتظار، مسدود، انجام‌شده. جابه‌جایی کارت‌ها با کشیدن و رها کردن (Drag & Drop) و افزودن سریع تسک در هر ستون.
+- **تسک‌ها**: عنوان، توضیحات، مسئول، وضعیت، اولویت، سررسید (تقویم شمسی)، دلیل مسدودی، اتصال به هدف.
+- **همفکری تیمی**: گفت‌وگوی هر تسک با نویسنده، آواتار و زمان نسبی («چند دقیقه پیش»). نوشتن با `Ctrl/⌘ + Enter`.
+- **افراد**: کارت هر عضو با نقش، ایمیل، آواتار رنگی اختصاصی و آمار (باز / در حال انجام / مسدود / عقب‌افتاده)؛ انتخاب «من کدام عضو هستم»، فیلتر برد بر اساس عضو، ویرایش و حذف عضو.
+- **اهداف**: هدف‌های بلندمدت با تاریخ هدف، مالک و **پیشرفت خودکار** بر اساس تسک‌های وصل‌شده.
+- **جست‌وجو و فیلتر** روی عنوان/توضیح/دلیل مسدودی و فیلتر بر اساس مسئول.
+- **آمار کلی**: کل تسک‌ها، در حال انجام، مسدود، سررسید گذشته، بدون مسئول.
+- دادهٔ نمونهٔ فارسی از ابتدا آماده است و با دکمهٔ «بازنشانی» به حالت اولیه برمی‌گردد.
+
+## پشتهٔ فنی
+
+| لایه | انتخاب |
+| --- | --- |
+| فریم‌ورک | Next.js 16 (App Router، React 19، TypeScript) |
+| UI | shadcn/ui روی Base UI + Tailwind CSS v4 + Lucide |
+| اعتبارسنجی | Zod 4 |
+| ذخیره‌سازی | فایل JSON یا PostgreSQL (`pg`) — به‌صورت خودکار انتخاب می‌شود |
+
+## اجرای محلی
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+بدون هیچ تنظیم دیگری اجرا می‌شود و داده‌ها در `.data/workspace.json` ذخیره می‌شوند.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build && npm start   # اجرای نسخهٔ تولید
+npm run lint                 # ESLint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## ذخیره‌سازی: سه حالت
 
-## Learn More
+کل فضای کاری (اعضا، تسک‌ها، کامنت‌ها، هدف‌ها) یک سند JSON با شمارندهٔ نسخه است. نوشتن‌ها سریالی و با بررسی نسخه انجام می‌شوند تا دو درخواست هم‌زمان داده را خراب نکنند.
 
-To learn more about Next.js, take a look at the following resources:
+| حالت | چه زمانی | پایداری |
+| --- | --- | --- |
+| `postgres` | `DATABASE_URL` تنظیم شده باشد | پایدار — مناسب تولید |
+| `file` | اجرای محلی یا سرور خودتان (بدون `DATABASE_URL`) | پایدار در `.data/workspace.json` |
+| `ephemeral` | روی Vercel بدون `DATABASE_URL` | موقت در `/tmp`؛ با هر ری‌استارت بازنشانی می‌شود |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+حالت فعال در نوار بالای برنامه نمایش داده می‌شود و در حالت موقت یک هشدار زرد ظاهر می‌شود. برای دیدن وضعیت:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+curl http://localhost:3000/api/workspace | jq '.storage'
+```
 
-## Deploy on Vercel
+### اتصال یک Postgres رایگان (توصیه‌شده برای Vercel)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+هر سرویس Postgres رایگان کار می‌کند؛ مثلاً **Neon** یا **Supabase**:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. در [neon.com](https://neon.com) یا [supabase.com](https://supabase.com) پروژهٔ رایگان بسازید.
+2. رشتهٔ اتصال (`Connection string`) را کپی کنید؛ باید شامل `?sslmode=require` باشد.
+3. آن را به‌عنوان `DATABASE_URL` تنظیم کنید (محلی در `.env.local`، روی Vercel در Environment Variables).
+4. برنامه را ری‌استارت کنید. جدول `workspace_doc` در اولین درخواست خودکار ساخته و با دادهٔ نمونه پر می‌شود.
+
+`.env.local`:
+
+```bash
+DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
+```
+
+## استقرار روی Vercel
+
+1. مخزن را در GitHub قرار دهید.
+2. در [vercel.com/new](https://vercel.com/new) مخزن را Import کنید. تنظیمات پیش‌فرض Next.js درست است (Build: `next build`).
+3. در بخش **Environment Variables** مقدار `DATABASE_URL` را اضافه کنید.
+   - بدون این متغیر هم سایت بالا می‌آید، اما داده‌ها موقتی‌اند (حالت نمایشی).
+4. Deploy.
+
+هیچ متغیر محیطی دیگری لازم نیست. برای دامنهٔ اختصاصی، در تنظیمات پروژهٔ Vercel دامنه را اضافه کنید.
+
+> برنامه روی هر میزبان Node (Docker، Railway، Fly.io، سرور شخصی) هم اجرا می‌شود؛ فقط کافی است `PORT` را تنظیم کنید و برای پایداری `DATABASE_URL` بدهید.
+
+## API
+
+همهٔ پاسخ‌ها JSON و به شکل `{ data, storage }` یا `{ error }` هستند. خطاهای اعتبارسنجی با کد `400` و پیام فارسی برمی‌گردند.
+
+| متد | مسیر | کار |
+| --- | --- | --- |
+| `GET` | `/api/workspace` | خواندن کل فضای کاری + وضعیت ذخیره‌سازی |
+| `POST` | `/api/workspace/reset` | بازنشانی به دادهٔ نمونه |
+| `POST` | `/api/tasks` | ساخت تسک |
+| `PATCH` `DELETE` | `/api/tasks/:id` | ویرایش / حذف تسک (کامنت‌هایش هم حذف می‌شوند) |
+| `POST` | `/api/tasks/:id/comments` | افزودن کامنت |
+| `DELETE` | `/api/comments/:id` | حذف کامنت |
+| `POST` | `/api/members` | افزودن عضو |
+| `PATCH` `DELETE` | `/api/members/:id` | ویرایش / حذف عضو (تسک‌هایش بدون مسئول می‌شوند) |
+| `POST` | `/api/goals` | ساخت هدف |
+| `PATCH` `DELETE` | `/api/goals/:id` | ویرایش / حذف هدف |
+
+نمونه:
+
+```bash
+# ساخت تسک
+curl -X POST http://localhost:3000/api/tasks \
+  -H "content-type: application/json" \
+  -d '{"title":"آماده‌سازی گزارش هفتگی","status":"in_progress","priority":"high",
+       "assigneeId":"mem_sara","dueDate":"2026-12-01"}'
+
+# تغییر وضعیت
+curl -X PATCH http://localhost:3000/api/tasks/<id> \
+  -H "content-type: application/json" -d '{"status":"blocked","blockedReason":"منتظر دسترسی"}'
+```
+
+## ساختار پروژه
+
+```
+src/
+├─ app/
+│  ├─ api/…            # Route Handlers (CRUD)
+│  ├─ layout.tsx       # RTL + فونت وزیرمتن محلی
+│  └─ page.tsx
+├─ components/
+│  ├─ app-shell.tsx    # هدر، تب‌ها، آمار، جست‌وجو، فیلتر
+│  ├─ board-view.tsx   # برد کشیدنی ۵ ستونه
+│  ├─ task-sheet.tsx   # پنل تسک + گفت‌وگو
+│  ├─ people-view.tsx  # افراد و آمار هر عضو
+│  ├─ goals-view.tsx   # اهداف و پیشرفت خودکار
+│  ├─ date-field.tsx   # تقویم شمسی
+│  └─ ui/              # کامپوننت‌های shadcn
+└─ lib/
+   ├─ types.ts         # مدل داده
+   ├─ service.ts       # قواعد کسب‌وکار روی سند فضای کاری
+   ├─ validation.ts    # اسکیمای Zod
+   ├─ jalali.ts        # تبدیل و تقویم جلالی
+   ├─ derived.ts       # آمار، فیلتر، پیشرفت هدف
+   └─ storage/         # درایور فایل JSON و PostgreSQL
+```
+
+## یادداشت‌های طراحی
+
+- **تاریخ‌ها** در سراسر برنامه به شکل `YYYY-MM-DD` ذخیره می‌شوند (بدون ساعت) تا مسئلهٔ منطقهٔ زمانی پیش نیاید؛ نمایش با تقویم جلالی است.
+- **به‌روزرسانی خوش‌بینانه**: رابط کاربری بلافاصله تغییر را نشان می‌دهد و پاسخ سرور آن را تأیید یا اصلاح می‌کند.
+- **فونت** وزیرمتن به‌صورت محلی در `public/fonts` سرو می‌شود؛ نیازی به CDN یا اینترنت در زمان اجرا نیست.
+- **بدون احراز هویت**: «من کدام عضو هستم» در `localStorage` نگه داشته می‌شود. برای استفادهٔ واقعی، یک لایهٔ ورود (مثلاً Auth.js) اضافه کنید و `authorId` را از نشست بگیرید.

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { LocaleProvider } from "@/components/locale-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toast";
 import { WorkspaceProvider } from "@/components/workspace-provider";
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY } from "@/lib/i18n";
@@ -30,11 +31,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: bootstrapScript }} />
       </head>
       <body className="min-h-full antialiased">
-        <LocaleProvider>
-          <Toaster>
-            <WorkspaceProvider>{children}</WorkspaceProvider>
-          </Toaster>
-        </LocaleProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <LocaleProvider>
+            <Toaster>
+              <WorkspaceProvider>{children}</WorkspaceProvider>
+            </Toaster>
+          </LocaleProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

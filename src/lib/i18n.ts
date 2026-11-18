@@ -29,6 +29,11 @@ const messages = {
   "app.language": ["زبان", "Language"],
   "app.fa": ["فارسی", "فارسی"],
   "app.en": ["English", "English"],
+  "theme.label": ["حالت نمایش", "Theme"],
+  "theme.toggle": ["انتخاب تم (روشن / تاریک)", "Toggle theme"],
+  "theme.light": ["روشن", "Light"],
+  "theme.dark": ["تاریک", "Dark"],
+  "theme.system": ["سیستم", "System"],
 
   // ── ناوبری و نماها
   "nav.board": ["برد کارها", "Board"],

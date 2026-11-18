@@ -43,7 +43,7 @@ export function NewTaskDialog({
   const { t } = useLocale();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" style={{ maxWidth: "32rem" }}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("action.newTask")}</DialogTitle>
           <DialogDescription>{t("board.dropHint")}</DialogDescription>

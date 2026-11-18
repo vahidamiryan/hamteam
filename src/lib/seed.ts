@@ -2,10 +2,23 @@ import { addDaysISO } from "./dates";
 import type { Comment, Goal, Member, Task, Workspace } from "./types";
 
 /**
- * دادهٔ نمونهٔ اولیه به هر دو زبان، تا در نمای فارسی و انگلیسی هر دو خوانا باشد.
- * تاریخ‌ها نسبت به «امروز» ساخته می‌شوند تا برد در اولین اجرا خالی نباشد.
+ * فضای کاری اولیه به صورت خام و خالی، آماده برای استفاده واقعی تیم.
  */
 export function seedWorkspace(now: Date = new Date()): Workspace {
+  return {
+    version: 1,
+    updatedAt: now.toISOString(),
+    members: [],
+    tasks: [],
+    comments: [],
+    goals: [],
+  };
+}
+
+/**
+ * دادهٔ نمونهٔ نمایشی به هر دو زبان (اختیاری برای تست).
+ */
+export function demoWorkspace(now: Date = new Date()): Workspace {
   const createdAt = now.toISOString();
   const day = (offset: number) => addDaysISO(offset, now);
   const at = (offsetDays: number, hour = 10) => {

@@ -60,14 +60,14 @@ export function TaskCard({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="line-clamp-2 text-sm leading-6 font-medium">
+        <h3 className="line-clamp-2 text-base leading-6 font-semibold">
           {taskTitle(locale, task)}
         </h3>
         {task.status === "done" ? <DoneChip className="shrink-0" /> : null}
       </div>
 
       {task.status === "blocked" && blocker ? (
-        <p className="mt-2 line-clamp-2 rounded-md bg-status-blocked/10 px-2 py-1 text-[11px] leading-5 text-status-blocked">
+        <p className="mt-2 line-clamp-2 rounded-md bg-status-blocked/10 px-2 py-1 text-xs leading-5 text-status-blocked">
           {blocker}
         </p>
       ) : null}
@@ -81,12 +81,12 @@ export function TaskCard({
       <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/70 pt-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <MemberAvatar member={assignee} size="sm" withCard />
-          <span className="truncate text-[11px] text-muted-foreground">
+          <span className="truncate text-xs text-muted-foreground">
             {assignee ? memberName(locale, assignee) : t("task.unassigned")}
           </span>
         </div>
         {commentCount > 0 ? (
-          <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
+          <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground tabular-nums">
             <MessageSquareIcon className="size-3.5" aria-hidden="true" />
             {formatNumber(commentCount)}
           </span>

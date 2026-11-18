@@ -86,7 +86,7 @@ export function PeopleView({
     <div className="flex flex-col gap-3">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold">{t("people.heading")}</h2>
+          <h2 className="text-base font-semibold">{t("people.heading")}</h2>
           <p className="text-xs text-muted-foreground">
             {t("people.description", { count: formatNumber(members.length) })}
           </p>
@@ -131,7 +131,7 @@ export function PeopleView({
                   <div className="flex items-start gap-2">
                     <MemberAvatar member={member} size="lg" withCard />
                     <div className="min-w-0 flex-1">
-                      <CardTitle className="flex items-center gap-1.5 text-sm">
+                      <CardTitle className="flex items-center gap-1.5 text-base font-semibold">
                         <span className="truncate">{memberName(locale, member)}</span>
                         {isMe ? (
                           <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
@@ -145,7 +145,7 @@ export function PeopleView({
                       {member.email ? (
                         <p
                           dir="ltr"
-                          className="truncate text-[11px] text-muted-foreground"
+                          className="truncate text-xs text-muted-foreground text-start"
                         >
                           {member.email}
                         </p>
@@ -216,7 +216,7 @@ export function PeopleView({
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       {t("people.doneOf", {
                         done: formatNumber(stats.done),
@@ -234,7 +234,7 @@ export function PeopleView({
 
                   <div className="flex flex-col">
                     {openTasks.length === 0 ? (
-                      <p className="py-2 text-center text-[11px] text-muted-foreground">
+                      <p className="py-2 text-center text-xs text-muted-foreground">
                         {t("people.noOpen")}
                       </p>
                     ) : (
@@ -283,7 +283,7 @@ export function PeopleView({
       )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent className="sm:max-w-md" style={{ maxWidth: "30rem" }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("member.newTitle")}</DialogTitle>
             <DialogDescription>{t("people.emptyHint")}</DialogDescription>
@@ -302,7 +302,7 @@ export function PeopleView({
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-md" style={{ maxWidth: "30rem" }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("member.editTitle")}</DialogTitle>
             <DialogDescription>{t("member.editTitle")}</DialogDescription>

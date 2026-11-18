@@ -2,13 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* فونت وزیرمتن به‌صورت محلی سرو می‌شود تا بدون وابستگی به سرویس بیرونی هم کار کند. */
 @font-face {
   font-family: "Vazirmatn";
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 100 900;
   font-display: swap;
   src: url("/fonts/vazirmatn-arabic.woff2") format("woff2");
   unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200E, U+2010-2011,
@@ -18,7 +18,7 @@
 @font-face {
   font-family: "Vazirmatn";
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 100 900;
   font-display: swap;
   src: url("/fonts/vazirmatn-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2212;
@@ -162,10 +162,22 @@
   html {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;
+    font-size: 16px;
+  }
+  /* در زبان فارسی نسبت ارتفاع و نقطه‌گذاری حروف فشرده‌تر است، با افزایش جزئی مقیاس پایه خوانایی بهینه می‌شود */
+  html[lang="fa"] {
+    font-size: 16.5px;
   }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01";
+    font-size: 0.9375rem;
+    line-height: 1.65;
+  }
+  input,
+  textarea,
+  select {
+    text-align: start;
   }
   ::selection {
     background: color-mix(in oklab, var(--primary) 18%, transparent);

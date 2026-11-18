@@ -86,7 +86,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
     <div className="flex flex-col gap-3">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold">{t("goals.heading")}</h2>
+          <h2 className="text-base font-semibold">{t("goals.heading")}</h2>
           <p className="text-xs text-muted-foreground">
             {t("goals.description", { count: formatNumber(goals.length) })}
           </p>
@@ -131,18 +131,18 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
                         <TargetIcon className="size-4" aria-hidden="true" />
                       </span>
                       <div className="min-w-0">
-                        <CardTitle className="text-sm leading-6">
+                        <CardTitle className="text-base leading-6 font-semibold">
                           <span className="line-clamp-2">{goalTitle(locale, goal)}</span>
                         </CardTitle>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
                           <GoalChip status={goal.status} />
                           {goal.targetDate ? (
-                            <span className="text-[11px] text-muted-foreground tabular-nums">
+                            <span className="text-xs text-muted-foreground tabular-nums">
                               {formatDate(locale, goal.targetDate)}
                             </span>
                           ) : null}
                           {owner ? (
-                            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               <MemberAvatar member={owner} size="sm" />
                               {memberName(locale, owner)}
                             </span>
@@ -194,7 +194,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
                 </CardHeader>
 
                 <CardContent className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{t("goals.progress")}</span>
                     <span className="font-medium text-foreground tabular-nums">
                       {percentLabel(locale, progress.percent)}
@@ -211,7 +211,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
                       style={{ width: `${progress.percent}%` }}
                     />
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {t("goals.tasksCount", {
                       done: formatNumber(progress.done),
                       total: formatNumber(progress.total),
@@ -221,7 +221,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
 
                   <div className="flex flex-col">
                     {goalTasks.length === 0 ? (
-                      <p className="py-2 text-center text-[11px] text-muted-foreground">
+                      <p className="py-2 text-center text-xs text-muted-foreground">
                         {t("goals.noTasks")}
                       </p>
                     ) : (
@@ -260,7 +260,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
       )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent className="sm:max-w-lg" style={{ maxWidth: "32rem" }}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("goals.newTitle")}</DialogTitle>
             <DialogDescription>{t("goals.emptyHint")}</DialogDescription>
@@ -275,7 +275,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-lg" style={{ maxWidth: "32rem" }}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("goals.editTitle")}</DialogTitle>
             <DialogDescription>{t("goals.editTitle")}</DialogDescription>

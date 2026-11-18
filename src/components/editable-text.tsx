@@ -54,6 +54,7 @@ export function EditableText({
   return (
     <textarea
       ref={ref}
+      dir="auto"
       aria-label={ariaLabel}
       rows={1}
       maxLength={maxLength}

@@ -134,6 +134,10 @@ export function DateField({
     setOpen(false);
   };
 
+  const isRtl = locale === "fa";
+  const PrevIcon = isRtl ? ChevronRightIcon : ChevronLeftIcon;
+  const NextIcon = isRtl ? ChevronLeftIcon : ChevronRightIcon;
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
@@ -166,7 +170,7 @@ export function DateField({
               )
             }
           >
-            <ChevronRightIcon />
+            <PrevIcon />
           </Button>
           <span className="text-xs font-medium">{monthLabel}</span>
           <Button
@@ -180,7 +184,7 @@ export function DateField({
               )
             }
           >
-            <ChevronLeftIcon />
+            <NextIcon />
           </Button>
         </div>
 

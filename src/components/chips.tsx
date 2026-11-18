@@ -139,7 +139,7 @@ export function GoalTag({ title, className }: { title: string; className?: strin
     <Badge
       variant="ghost"
       className={cn(
-        "max-w-full gap-1.5 border border-border/70 bg-background/60 text-[11px] font-normal text-muted-foreground",
+        "max-w-full gap-1.5 border border-border/70 bg-background/60 text-xs font-normal text-muted-foreground",
         className,
       )}
     >

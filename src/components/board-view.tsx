@@ -73,8 +73,8 @@ export function BoardView({
           >
             <header className="flex items-center gap-2 px-1 pt-0.5">
               <span className={cn("size-2 rounded-full", meta.dot)} aria-hidden="true" />
-              <h2 className="text-xs font-semibold tracking-wide">{t(meta.labelKey)}</h2>
-              <CountBadge value={tasks.length} className="h-5 px-1.5 text-[11px]" />
+              <h2 className="text-sm font-semibold tracking-wide">{t(meta.labelKey)}</h2>
+              <CountBadge value={tasks.length} className="h-5 px-1.5 text-xs" />
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -87,13 +87,13 @@ export function BoardView({
               </Button>
             </header>
 
-            <p className="px-1 text-[11px] text-muted-foreground">
+            <p className="px-1 text-xs text-muted-foreground">
               {t(meta.hintKey)}
             </p>
 
             <div className="flex flex-1 flex-col gap-2">
               {tasks.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/80 px-2 py-6 text-center text-[11px] text-muted-foreground">
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/80 px-2 py-6 text-center text-xs text-muted-foreground">
                   {t("board.empty")}
                 </div>
               ) : (

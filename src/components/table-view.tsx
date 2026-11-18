@@ -229,11 +229,11 @@ export function MiniTaskRow({
       <StatusChip status={task.status} className="shrink-0" />
       <span className="min-w-0 flex-1 truncate">{taskTitle(locale, task)}</span>
       {task.dueDate ? (
-        <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
           {formatDate(locale, task.dueDate)}
         </span>
       ) : (
-        <span className="shrink-0 text-[11px] text-muted-foreground">
+        <span className="shrink-0 text-xs text-muted-foreground">
           {t("date.noneDue")}
         </span>
       )}

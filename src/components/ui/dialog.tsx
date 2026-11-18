@@ -53,11 +53,21 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed z-50 grid w-full gap-4 bg-popover p-4 text-sm text-popover-foreground outline-none transition-all duration-200",
+          // Mobile: Bottom sheet
+          "inset-x-0 bottom-0 top-auto max-w-full rounded-t-2xl rounded-b-none border-t border-border/80 shadow-2xl max-h-[90vh] overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]",
+          "data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom",
+          // Desktop: Centered modal dialog
+          "sm:top-1/2 sm:left-1/2 sm:bottom-auto sm:inset-x-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-sm sm:rounded-xl sm:border sm:ring-1 sm:ring-foreground/10 sm:max-h-none sm:overflow-visible sm:pb-4 sm:duration-100",
+          "sm:data-open:zoom-in-95 sm:data-open:slide-in-from-bottom-0 sm:data-closed:zoom-out-95 sm:data-closed:slide-out-to-bottom-0",
           className
         )}
         {...props}
       >
+        <div
+          className="mx-auto -mt-1 mb-1 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/25 sm:hidden"
+          aria-hidden="true"
+        />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -65,7 +75,7 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                className="absolute top-2.5 end-2.5"
                 size="icon-sm"
               />
             }
@@ -102,7 +112,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-none border-t bg-muted/50 p-4 sm:rounded-b-xl sm:flex-row sm:justify-end",
         className
       )}
       {...props}

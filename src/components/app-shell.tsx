@@ -23,6 +23,7 @@ import { NewTaskDialog } from "@/components/new-task-dialog";
 import { PeopleView } from "@/components/people-view";
 import { TableView } from "@/components/table-view";
 import { TaskSheet } from "@/components/task-sheet";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,8 +118,8 @@ export function AppShell() {
               <UsersIcon className="size-4" aria-hidden="true" />
             </span>
             <div className="leading-tight">
-              <h1 className="text-sm font-semibold">{t("app.name")}</h1>
-              <p className="hidden text-[11px] text-muted-foreground sm:block">
+              <h1 className="text-base font-bold">{t("app.name")}</h1>
+              <p className="hidden text-xs text-muted-foreground sm:block">
                 {t("app.tagline")}
               </p>
             </div>
@@ -140,7 +141,7 @@ export function AppShell() {
               <ToggleGroupItem
                 key={item.value}
                 value={item.value}
-                className="flex-1 gap-1.5 px-2 sm:flex-none"
+                className="flex-1 gap-1.5 px-2.5 sm:flex-none text-xs"
                 aria-label={t(item.labelKey)}
               >
                 <item.icon className="size-3.5" />
@@ -161,13 +162,15 @@ export function AppShell() {
               size="sm"
               aria-label={t("app.language")}
             >
-              <ToggleGroupItem value="fa" aria-label={t("app.fa")} className="px-2 text-[11px]">
+              <ToggleGroupItem value="fa" aria-label={t("app.fa")} className="px-2.5 text-xs font-medium">
                 فا
               </ToggleGroupItem>
-              <ToggleGroupItem value="en" aria-label={t("app.en")} className="px-2 text-[11px]">
+              <ToggleGroupItem value="en" aria-label={t("app.en")} className="px-2.5 text-xs font-medium">
                 EN
               </ToggleGroupItem>
             </ToggleGroup>
+
+            <ThemeToggle />
 
             {currentUser ? (
               <DropdownMenu>
@@ -265,8 +268,8 @@ export function AppShell() {
                   className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/70 px-2 py-1"
                 >
                   <span className={cn("size-1.5 rounded-full", item.tone)} aria-hidden="true" />
-                  <span className="text-[11px] text-muted-foreground">{item.label}</span>
-                  <span className="text-[11px] font-semibold tabular-nums">
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className="text-xs font-semibold tabular-nums">
                     {formatNumber(item.value)}
                   </span>
                 </div>
@@ -339,8 +342,8 @@ export function AppShell() {
         ) : null}
       </main>
 
-      <footer className="border-t px-3 py-2 text-center text-[11px] text-muted-foreground sm:px-4">
-        <Badge variant="outline" className="gap-1.5 text-[10px] font-normal">
+      <footer className="border-t px-3 py-2 text-center text-xs text-muted-foreground sm:px-4">
+        <Badge variant="outline" className="gap-1.5 text-xs font-normal">
           <DatabaseIcon className="size-3" aria-hidden="true" />
           {t("storage.label")}: {storage ? t(`storage.mode.${storage.mode}`) : "—"}
         </Badge>
@@ -399,7 +402,7 @@ export function StatCard({
     <Card className={cn("py-2", className)}>
       <CardContent className="px-3">
         <div className="text-lg font-semibold tabular-nums">{value}</div>
-        <div className="text-[11px] text-muted-foreground">{label}</div>
+        <div className="text-xs text-muted-foreground">{label}</div>
       </CardContent>
     </Card>
   );

@@ -95,13 +95,14 @@ export function TaskSheet({
   taskId: string | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { isRtl } = useLocale();
   const { workspace } = useWorkspace();
   const task = workspace?.tasks.find((item) => item.id === taskId) ?? null;
 
   return (
     <Sheet open={Boolean(taskId)} onOpenChange={onOpenChange}>
       <SheetContent
-        side="right"
+        side={isRtl ? "left" : "right"}
         className="w-full gap-0 sm:max-w-2xl"
         style={{ maxWidth: "34rem" }}
       >
@@ -197,10 +198,10 @@ function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
           ariaLabel={t("task.title")}
           placeholder={t("task.titlePlaceholder")}
           maxLength={locale === "fa" ? 160 : 160}
-          className="-mx-1 text-lg leading-7 font-semibold"
+          className="-mx-1 text-xl leading-8 font-bold"
         />
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <MemberAvatar member={assignee} size="sm" />
             {assignee ? memberName(locale, assignee) : t("task.unassigned")}
@@ -446,7 +447,7 @@ function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
         </section>
       </div>
 
-      <SheetFooter className="border-t text-[11px] text-muted-foreground">
+      <SheetFooter className="border-t text-xs text-muted-foreground">
         <span className="tabular-nums">
           {t("task.updated", { when: formatDateTime(locale, task.updatedAt) })}
         </span>
@@ -484,6 +485,7 @@ function CommentComposer({
     <InputGroup className="h-auto">
       <InputGroupTextarea
         value={draft}
+        dir="auto"
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -498,10 +500,10 @@ function CommentComposer({
         className="min-h-14"
       />
       <InputGroupAddon align="block-end" className="justify-between gap-2">
-        <span className="hidden items-center gap-1 text-[11px] text-muted-foreground sm:flex">
+        <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
           <Kbd>Ctrl</Kbd>+<Kbd>Enter</Kbd> {hint}
         </span>
-        <span className="truncate text-[11px] text-muted-foreground">{sendAs}</span>
+        <span className="truncate text-xs text-muted-foreground">{sendAs}</span>
         <InputGroupButton
           variant="default"
           size="sm"

@@ -1,26 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { CalendarClockIcon, CircleCheckIcon, TargetIcon } from "lucide-react";
+import { CircleCheckIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { useLocale } from "@/components/locale-provider";
-import { dueLabel, formatDate } from "@/lib/dates";
-import {
-  GOAL_STATUS_META,
-  PRIORITY_META,
-  STATUS_META,
-} from "@/lib/labels";
+import { dueLabel, formatDate, formatDateShort } from "@/lib/dates";
+import { GOAL_STATUS_META, PRIORITY_META, STATUS_META } from "@/lib/labels";
 import type { GoalStatus, Priority, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const DUE_TONE_CLASS: Record<string, string> = {
-  overdue: "border-transparent bg-status-blocked/12 text-status-blocked",
-  today: "border-transparent bg-status-pending/16 text-status-pending",
-  soon: "border-transparent bg-status-pending/10 text-status-pending",
-  later: "border-border bg-transparent text-muted-foreground",
-};
-
+/**
+ * وضعیت تنها جای رنگ‌دار ثابت کارت است؛ بقیهٔ متادیتا به متن آرام تبدیل شده‌اند.
+ */
 export function StatusChip({
   status,
   className,
@@ -43,7 +35,8 @@ export function StatusChip({
   );
 }
 
-export function PriorityChip({
+/** اولویت: نقطهٔ رنگی + متن، بدون کادر. */
+export function PriorityDot({
   priority,
   className,
 }: {
@@ -53,21 +46,29 @@ export function PriorityChip({
   const { t } = useLocale();
   const meta = PRIORITY_META[priority];
   return (
-    <Badge
-      variant="outline"
-      className={cn("gap-1.5 border-transparent font-medium", meta.chip, className)}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-xs text-muted-foreground",
+        className,
+      )}
     >
-      <span className={cn("size-1.5 rounded-full", meta.dot)} />
+      <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden="true" />
       {t(meta.labelKey)}
-    </Badge>
+    </span>
   );
 }
 
-export function DueChip({
+/**
+ * مُهر تاریخ: امضای محصول. تاریخ کوتاه جلالی/میلادی، و فقط وقتی نزدیک است
+ * واژهٔ فوریت هم کنارش می‌آید.
+ */
+export function DueStamp({
   dueDate,
+  status,
   className,
 }: {
   dueDate: string | null;
+  status?: TaskStatus;
   className?: string;
 }) {
   const { locale, t } = useLocale();
@@ -80,24 +81,38 @@ export function DueChip({
     );
   }
 
+  if (status === "done") {
+    return (
+      <span className={cn("text-xs text-muted-foreground tabular-nums", className)}>
+        {formatDateShort(locale, dueDate)}
+      </span>
+    );
+  }
+
   const due = dueLabel(locale, dueDate);
+  // امروز و گذشته با واژهٔ کوتاه نمایش داده می‌شوند تا در کارت باریک جا شوند؛
+  // تاریخ کامل در tooltip و در پنل تسک هست.
+  const relative = due.tone === "overdue" || due.tone === "today";
+
   return (
-    <Badge
-      variant="outline"
+    <span
       className={cn(
-        "gap-1.5 font-medium tabular-nums",
-        DUE_TONE_CLASS[due.tone],
+        "text-xs tabular-nums",
+        due.tone === "overdue"
+          ? "font-medium text-destructive"
+          : due.tone === "today"
+            ? "text-status-pending"
+            : "text-muted-foreground",
         className,
       )}
       title={formatDate(locale, dueDate)}
     >
-      <CalendarClockIcon data-icon="inline-start" />
-      {due.text}
-    </Badge>
+      {relative ? due.text : formatDateShort(locale, dueDate)}
+    </span>
   );
 }
 
-export function GoalChip({
+export function GoalStatusDot({
   status,
   className,
 }: {
@@ -107,13 +122,15 @@ export function GoalChip({
   const { t } = useLocale();
   const meta = GOAL_STATUS_META[status];
   return (
-    <Badge
-      variant="outline"
-      className={cn("gap-1.5 border-transparent font-medium", meta.chip, className)}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-xs text-muted-foreground",
+        className,
+      )}
     >
-      <span className={cn("size-1.5 rounded-full", meta.dot)} />
+      <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden="true" />
       {t(meta.labelKey)}
-    </Badge>
+    </span>
   );
 }
 
@@ -124,7 +141,7 @@ export function DoneChip({ className }: { className?: string }) {
     <Badge
       variant="outline"
       className={cn(
-        "gap-1.5 border-transparent bg-status-done/12 font-medium text-status-done",
+        "gap-1.5 border-transparent bg-status-done/10 font-medium text-status-done",
         className,
       )}
     >
@@ -134,29 +151,20 @@ export function DoneChip({ className }: { className?: string }) {
   );
 }
 
+/** هدف به شکل متن آرام، نه نشان. */
 export function GoalTag({ title, className }: { title: string; className?: string }) {
   return (
-    <Badge
-      variant="ghost"
-      className={cn(
-        "max-w-full gap-1.5 border border-border/70 bg-background/60 text-xs font-normal text-muted-foreground",
-        className,
-      )}
-    >
-      <TargetIcon data-icon="inline-start" />
-      <span className="truncate">{title}</span>
-    </Badge>
+    <span className={cn("truncate text-xs text-muted-foreground", className)}>
+      {title}
+    </span>
   );
 }
 
-export function CountBadge({ value, className }: { value: number; className?: string }) {
+export function CountText({ value, className }: { value: number; className?: string }) {
   const { formatNumber } = useLocale();
   return (
-    <Badge
-      variant="secondary"
-      className={cn("min-w-5 justify-center tabular-nums", className)}
-    >
+    <span className={cn("text-xs text-muted-foreground tabular-nums", className)}>
       {formatNumber(value)}
-    </Badge>
+    </span>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { CheckIcon, MessageSquareIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, LayoutListIcon, Trash2Icon } from "lucide-react";
 
-import { DueChip, PriorityChip, StatusChip } from "@/components/chips";
+import { DueStamp, PriorityDot, StatusChip } from "@/components/chips";
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,10 @@ import {
 import { toast } from "@/components/ui/toast";
 import { useWorkspace } from "@/components/workspace-provider";
 import { filterTasks, type TaskFilterOptions } from "@/lib/derived";
-import { formatDate } from "@/lib/dates";
+import { cn } from "@/lib/utils";
+import { formatDateShort } from "@/lib/dates";
 import { goalTitle, memberName, taskTitle } from "@/lib/locale-text";
+import { STATUS_META } from "@/lib/labels";
 import type { Task } from "@/lib/types";
 
 export function TableView({
@@ -111,7 +113,7 @@ export function TableView({
           <Empty className="border-0">
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <MessageSquareIcon />
+                <LayoutListIcon />
               </EmptyMedia>
               <EmptyTitle>{t("table.empty")}</EmptyTitle>
               <EmptyDescription>{t("filter.noneHint")}</EmptyDescription>
@@ -135,7 +137,7 @@ export function TableView({
                 <TableHead className="hidden sm:table-cell">{t("task.assignee")}</TableHead>
                 <TableHead className="hidden lg:table-cell">{t("task.due")}</TableHead>
                 <TableHead className="hidden xl:table-cell">{t("task.goal")}</TableHead>
-                <TableHead className="w-16 text-center">{t("task.comments")}</TableHead>
+                <TableHead className="w-16 text-center">{t("table.commentsShort")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -161,15 +163,22 @@ export function TableView({
                       />
                     </TableCell>
                     <TableCell>
-                      <span className="line-clamp-2 text-sm font-medium">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onOpenTask(task.id);
+                        }}
+                        className="line-clamp-2 text-start text-sm font-medium underline-offset-4 outline-none hover:underline focus-visible:underline"
+                      >
                         {taskTitle(locale, task)}
-                      </span>
+                      </button>
                     </TableCell>
                     <TableCell>
                       <StatusChip status={task.status} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <PriorityChip priority={task.priority} />
+                      <PriorityDot priority={task.priority} />
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <span className="flex items-center gap-1.5">
@@ -180,17 +189,7 @@ export function TableView({
                       </span>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {task.dueDate ? (
-                        task.status === "done" ? (
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {formatDate(locale, task.dueDate)}
-                          </span>
-                        ) : (
-                          <DueChip dueDate={task.dueDate} />
-                        )
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <DueStamp dueDate={task.dueDate} status={task.status} />
                     </TableCell>
                     <TableCell className="hidden max-w-40 truncate text-xs text-muted-foreground xl:table-cell">
                       {goal ? goalTitle(locale, goal) : "—"}
@@ -220,23 +219,22 @@ export function MiniTaskRow({
   meta?: React.ReactNode;
 }) {
   const { locale, t } = useLocale();
+  const meta_ = STATUS_META[task.status];
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-xs transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/40"
+      className="flex w-full items-center gap-2 rounded-md px-1 py-2 text-start text-xs outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/40"
     >
-      <StatusChip status={task.status} className="shrink-0" />
+      <span
+        className={cn("size-1.5 shrink-0 rounded-full", meta_.dot)}
+        aria-label={t(meta_.labelKey)}
+        role="img"
+      />
       <span className="min-w-0 flex-1 truncate">{taskTitle(locale, task)}</span>
-      {task.dueDate ? (
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-          {formatDate(locale, task.dueDate)}
-        </span>
-      ) : (
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {t("date.noneDue")}
-        </span>
-      )}
+      <span className="shrink-0 text-muted-foreground tabular-nums">
+        {task.dueDate ? formatDateShort(locale, task.dueDate) : t("date.noneDue")}
+      </span>
       {meta}
     </button>
   );

@@ -6,6 +6,15 @@ const DEFAULT_SUPABASE_URL = "https://vybdawzzwoqsgrwrkkqr.supabase.co";
 const DEFAULT_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5YmRhd3p6d29xc2dyd3Jra3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3Njc4OTcsImV4cCI6MjEwNjM0Mzg5N30._QnxmnyWF7jYQVU6CbLgZkdUsVt_YOoGwmZt1n1-P3c";
 
+/**
+ * آیا کلید و آدرس Realtime در دسترس است؟ این مقدار روی سرور و کلاینت یکسان است،
+ * بنابراین می‌تواند وضعیت اولیهٔ رابط را بدون اختلاف hydration تعیین کند.
+ */
+export const SUPABASE_ENABLED = Boolean(
+  (process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL) &&
+    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || DEFAULT_SUPABASE_ANON_KEY),
+);
+
 export function getSupabaseClient(): SupabaseClient | null {
   if (typeof window === "undefined") return null;
   if (client) return client;

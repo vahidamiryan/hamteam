@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   ChevronDownIcon,
   Columns3Icon,
-  DatabaseIcon,
   EllipsisIcon,
   PlusIcon,
   RefreshCcwIcon,
@@ -35,9 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,12 +43,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useWorkspace } from "@/components/workspace-provider";
+import { formatRelative } from "@/lib/dates";
 import { filterTasks, workspaceStats, type TaskFilterOptions } from "@/lib/derived";
 import { memberName } from "@/lib/locale-text";
 import type { Locale } from "@/lib/i18n";
@@ -60,7 +58,11 @@ import { cn } from "@/lib/utils";
 
 type View = "board" | "table" | "people" | "goals";
 
-const NAV: { value: View; labelKey: "nav.board" | "nav.table" | "nav.people" | "nav.goals"; icon: React.ComponentType<{ className?: string }> }[] = [
+const NAV: {
+  value: View;
+  labelKey: "nav.board" | "nav.table" | "nav.people" | "nav.goals";
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
   { value: "board", labelKey: "nav.board", icon: Columns3Icon },
   { value: "table", labelKey: "nav.table", icon: TableIcon },
   { value: "people", labelKey: "nav.people", icon: UsersIcon },
@@ -110,16 +112,26 @@ export function AppShell() {
     setView("board");
   };
 
+  const statItems = stats
+    ? [
+        { label: t("stats.total"), value: stats.total },
+        { label: t("stats.inProgress"), value: stats.inProgress },
+        { label: t("stats.blocked"), value: stats.blocked, tone: "blocked" as const },
+        { label: t("stats.overdue"), value: stats.overdue, tone: "blocked" as const },
+        { label: t("stats.unassigned"), value: stats.unassigned },
+      ]
+    : [];
+
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <UsersIcon className="size-4" aria-hidden="true" />
+      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <UsersIcon />
             </span>
             <div className="leading-tight">
-              <h1 className="text-base font-bold">{t("app.name")}</h1>
+              <h1 className="text-sm font-medium">{t("app.name")}</h1>
               <p className="hidden text-xs text-muted-foreground sm:block">
                 {t("app.tagline")}
               </p>
@@ -135,41 +147,23 @@ export function AppShell() {
             spacing={0}
             variant="outline"
             size="sm"
-            className="order-3 w-full sm:order-none sm:ms-2 sm:w-auto"
-            aria-label={t("app.name")}
+            className="order-3 w-full sm:order-none sm:ms-3 sm:w-auto"
+            aria-label={t("nav.views")}
           >
             {NAV.map((item) => (
               <ToggleGroupItem
                 key={item.value}
                 value={item.value}
-                className="flex-1 gap-1.5 px-2.5 sm:flex-none text-xs"
+                className="flex-1 gap-1.5 px-1.5 text-xs sm:flex-none sm:px-2"
                 aria-label={t(item.labelKey)}
               >
                 <item.icon className="size-3.5" />
-                <span className="hidden sm:inline">{t(item.labelKey)}</span>
+                <span className="truncate">{t(item.labelKey)}</span>
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
 
           <div className="ms-auto flex items-center gap-1.5">
-            {realtimeStatus === "connected" ? (
-              <div
-                className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 select-none"
-                title={t("realtime.connectedTitle")}
-              >
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{t("realtime.live")}</span>
-              </div>
-            ) : realtimeStatus === "connecting" ? (
-              <div
-                className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 select-none"
-                title={t("realtime.connectingTitle")}
-              >
-                <span className="size-1.5 rounded-full bg-amber-500" />
-                <span>{t("realtime.connecting")}</span>
-              </div>
-            ) : null}
-
             <ToggleGroup
               value={[locale]}
               onValueChange={(next) => {
@@ -181,15 +175,15 @@ export function AppShell() {
               size="sm"
               aria-label={t("app.language")}
             >
-              <ToggleGroupItem value="fa" aria-label={t("app.fa")} className="px-2.5 text-xs font-medium">
+              <ToggleGroupItem value="fa" aria-label={t("app.fa")} className="px-2 text-xs">
                 فا
               </ToggleGroupItem>
-              <ToggleGroupItem value="en" aria-label={t("app.en")} className="px-2.5 text-xs font-medium">
+              <ToggleGroupItem value="en" aria-label={t("app.en")} className="px-2 text-xs">
                 EN
               </ToggleGroupItem>
             </ToggleGroup>
 
-            <ThemeToggle />
+            <ThemeToggle className="hidden sm:inline-flex" />
 
             {currentUser ? (
               <DropdownMenu>
@@ -199,10 +193,13 @@ export function AppShell() {
                   aria-label={t("action.thisIsMe")}
                 >
                   <MemberAvatar member={currentUser} size="sm" />
-                  <span className="hidden max-w-24 truncate sm:inline">
+                  <span className="hidden max-w-24 truncate text-xs sm:inline">
                     {memberName(locale, currentUser)}
                   </span>
-                  <ChevronDownIcon data-icon="inline-end" className="text-muted-foreground" />
+                  <ChevronDownIcon
+                    data-icon="inline-end"
+                    className="text-muted-foreground"
+                  />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-52">
                   <DropdownMenuGroup>
@@ -241,16 +238,6 @@ export function AppShell() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-48">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-normal">
-                    <DatabaseIcon className="size-3.5" />
-                    {t("storage.label")}
-                  </DropdownMenuLabel>
-                  <DropdownMenuItem disabled>
-                    {storage ? t(`storage.mode.${storage.mode}`) : "—"}
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => void refresh()}>
                     <RefreshCcwIcon data-icon="inline-start" />
                     {t("action.retry")}
@@ -263,42 +250,9 @@ export function AppShell() {
             </DropdownMenu>
           </div>
         </div>
-
-        {stats ? (
-          <div className="mx-auto w-full max-w-7xl overflow-x-auto px-3 pb-2 sm:px-4">
-            <div className="flex items-center gap-1.5">
-              {[
-                { label: t("stats.total"), value: stats.total, tone: "bg-status-backlog" },
-                {
-                  label: t("stats.inProgress"),
-                  value: stats.inProgress,
-                  tone: "bg-status-progress",
-                },
-                { label: t("stats.blocked"), value: stats.blocked, tone: "bg-status-blocked" },
-                { label: t("stats.overdue"), value: stats.overdue, tone: "bg-status-pending" },
-                {
-                  label: t("stats.unassigned"),
-                  value: stats.unassigned,
-                  tone: "bg-muted-foreground/40",
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/70 px-2 py-1"
-                >
-                  <span className={cn("size-1.5 rounded-full", item.tone)} aria-hidden="true" />
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                  <span className="text-xs font-semibold tabular-nums">
-                    {formatNumber(item.value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-3 px-3 py-3 sm:px-4">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-3 px-3 py-3 sm:px-6">
         {storage?.mode === "ephemeral" ? (
           <Alert>
             <TriangleAlertIcon />
@@ -312,7 +266,7 @@ export function AppShell() {
             <Skeleton className="h-8 w-64" />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
               {Array.from({ length: 5 }, (_, index) => (
-                <Skeleton key={index} className="h-40 rounded-xl" />
+                <Skeleton key={index} className="h-40 rounded-lg" />
               ))}
             </div>
           </div>
@@ -329,6 +283,33 @@ export function AppShell() {
           </Alert>
         ) : workspace ? (
           <>
+            {stats ? (
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {statItems.map((item, index) => (
+                  <React.Fragment key={item.label}>
+                    {index > 0 ? (
+                      <span aria-hidden="true" className="text-border">
+                        ·
+                      </span>
+                    ) : null}
+                    <span className="tabular-nums">
+                      {item.label}{" "}
+                      <span
+                        className={cn(
+                          "font-medium",
+                          item.tone === "blocked" && item.value > 0
+                            ? "text-destructive"
+                            : "text-foreground",
+                        )}
+                      >
+                        {formatNumber(item.value)}
+                      </span>
+                    </span>
+                  </React.Fragment>
+                ))}
+              </div>
+            ) : null}
+
             {view === "board" || view === "table" ? (
               <FilterBar
                 filters={filters}
@@ -350,10 +331,7 @@ export function AppShell() {
             ) : null}
 
             {view === "people" ? (
-              <PeopleView
-                onOpenTask={setOpenTaskId}
-                onShowTasks={showMemberTasks}
-              />
+              <PeopleView onOpenTask={setOpenTaskId} onShowTasks={showMemberTasks} />
             ) : null}
 
             {view === "goals" ? <GoalsView onOpenTask={setOpenTaskId} /> : null}
@@ -361,11 +339,31 @@ export function AppShell() {
         ) : null}
       </main>
 
-      <footer className="border-t px-3 py-2 text-center text-xs text-muted-foreground sm:px-4">
-        <Badge variant="outline" className="gap-1.5 text-xs font-normal">
-          <DatabaseIcon className="size-3" aria-hidden="true" />
-          {t("storage.label")}: {storage ? t(`storage.mode.${storage.mode}`) : "—"}
-        </Badge>
+      <Separator />
+      <footer className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-xs text-muted-foreground sm:px-6">
+        <span className="flex items-center gap-2">
+          <span>{storage ? t(`storage.mode.${storage.mode}`) : "—"}</span>
+          {realtimeStatus === "connected" ? (
+            <span
+              className="inline-flex items-center gap-1.5"
+              title={t("realtime.connectedTitle")}
+            >
+              <span className="size-1.5 rounded-full bg-status-done" aria-hidden="true" />
+              {t("realtime.live")}
+            </span>
+          ) : realtimeStatus === "connecting" ? (
+            <span
+              className="inline-flex items-center gap-1.5"
+              title={t("realtime.connectingTitle")}
+            >
+              <span className="size-1.5 rounded-full bg-status-pending" aria-hidden="true" />
+              {t("realtime.connecting")}
+            </span>
+          ) : null}
+        </span>
+        <span className="tabular-nums">
+          {workspace ? t("app.lastUpdated", { when: formatRelative(locale, workspace.updatedAt) }) : ""}
+        </span>
       </footer>
 
       <TaskSheet
@@ -404,25 +402,5 @@ export function AppShell() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
-}
-
-/** کارت آمار کوچک برای استفادهٔ بیرونی. */
-export function StatCard({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) {
-  return (
-    <Card className={cn("py-2", className)}>
-      <CardContent className="px-3">
-        <div className="text-lg font-semibold tabular-nums">{value}</div>
-        <div className="text-xs text-muted-foreground">{label}</div>
-      </CardContent>
-    </Card>
   );
 }

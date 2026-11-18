@@ -46,7 +46,7 @@ export function NewTaskDialog({
       <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("action.newTask")}</DialogTitle>
-          <DialogDescription>{t("board.dropHint")}</DialogDescription>
+          <DialogDescription>{t("task.newDescription")}</DialogDescription>
         </DialogHeader>
         <TaskForm
           key={`${defaultStatus}:${defaultAssigneeId ?? ""}:${defaultGoalId ?? ""}`}
@@ -111,10 +111,10 @@ function TaskForm({
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-      <FieldGroup className="gap-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field className="gap-1">
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <FieldGroup className="gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
             <FieldLabel htmlFor="task-title">{t("task.title")}</FieldLabel>
             <Input
               id="task-title"
@@ -128,7 +128,7 @@ function TaskForm({
             />
           </Field>
 
-          <Field className="gap-1">
+          <Field className="gap-1.5">
             <FieldLabel htmlFor="task-title-en">Title (EN)</FieldLabel>
             <Input
               id="task-title-en"
@@ -141,7 +141,7 @@ function TaskForm({
           </Field>
         </div>
 
-        <Field className="gap-1">
+        <Field className="gap-1.5">
           <FieldLabel htmlFor="task-description">{t("task.description")}</FieldLabel>
           <Textarea
             id="task-description"
@@ -154,7 +154,7 @@ function TaskForm({
           />
         </Field>
 
-        <Field className="gap-1">
+        <Field className="gap-1.5">
           <FieldLabel className="text-xs text-muted-foreground">
             {t("task.status")}
           </FieldLabel>
@@ -185,15 +185,15 @@ function TaskForm({
           </ToggleGroup>
         </Field>
 
-        <Field className="gap-1">
+        <Field className="gap-1.5">
           <FieldLabel className="text-xs text-muted-foreground">
             {t("task.priority")}
           </FieldLabel>
           <PriorityToggleGroup value={priority} onChange={setPriority} />
         </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field className="gap-1">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
             <FieldLabel className="text-xs text-muted-foreground">
               {t("task.assignee")}
             </FieldLabel>
@@ -203,7 +203,7 @@ function TaskForm({
               onChange={setAssigneeId}
             />
           </Field>
-          <Field className="gap-1">
+          <Field className="gap-1.5">
             <FieldLabel className="text-xs text-muted-foreground">
               {t("task.due")}
             </FieldLabel>
@@ -217,7 +217,7 @@ function TaskForm({
         </div>
 
         {goals.length > 0 ? (
-          <Field className="gap-1">
+          <Field className="gap-1.5">
             <FieldLabel className="text-xs text-muted-foreground">
               {t("task.goal")}
             </FieldLabel>

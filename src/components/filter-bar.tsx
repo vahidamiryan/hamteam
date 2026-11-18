@@ -1,18 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
+import { SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
 
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -21,7 +24,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { Toggle } from "@/components/ui/toggle";
 import { useWorkspace } from "@/components/workspace-provider";
 import type { TaskFilterOptions } from "@/lib/derived";
 import { memberName } from "@/lib/locale-text";
@@ -55,9 +57,16 @@ export function FilterBar({
   const members = workspace?.members ?? [];
   const selectedMember =
     members.find((member) => member.id === filters.assigneeId) ?? null;
-  const hasFilters = Boolean(
-    (filters.search ?? "") || filters.assigneeId || filters.onlyOverdue,
-  );
+  const activeCount =
+    (filters.assigneeId ? 1 : 0) +
+    (filters.onlyOverdue ? 1 : 0) +
+    ((filters.search ?? "") ? 1 : 0);
+  const hasFilters = activeCount > 0;
+
+  const clearAll = () => {
+    setSearch("");
+    onChange({ search: "", assigneeId: null, onlyOverdue: false });
+  };
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
@@ -86,19 +95,23 @@ export function FilterBar({
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="outline" size="sm" />}
-          className="gap-1.5 font-normal"
+          render={<Button variant="outline" size="sm" className="gap-1.5 font-normal" />}
         >
           {selectedMember ? (
             <MemberAvatar member={selectedMember} size="sm" />
           ) : (
-            <ListFilterIcon data-icon="inline-start" className="text-muted-foreground" />
+            <SlidersHorizontalIcon data-icon="inline-start" className="text-muted-foreground" />
           )}
           <span className="max-w-32 truncate">
-            {selectedMember ? memberName(locale, selectedMember) : t("filter.assignee")}
+            {selectedMember ? memberName(locale, selectedMember) : t("filter.title")}
           </span>
+          {activeCount > 0 ? (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {formatNumber(activeCount)}
+            </span>
+          ) : null}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-52">
+        <DropdownMenuContent align="start" className="min-w-56">
           <DropdownMenuGroup>
             <DropdownMenuLabel>{t("filter.assignee")}</DropdownMenuLabel>
             <DropdownMenuRadioGroup
@@ -114,57 +127,36 @@ export function FilterBar({
               {members.map((member) => (
                 <DropdownMenuRadioItem key={member.id} value={member.id} className="gap-2">
                   <MemberAvatar member={member} size="sm" />
-                  <span className="truncate">{memberName(locale, member)}</span>
+                  <span className="truncate">
+                    {memberName(locale, member)}
+                    {member.id === currentUser?.id ? ` (${t("people.you")})` : ""}
+                  </span>
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
           </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuCheckboxItem
+            checked={Boolean(filters.onlyOverdue)}
+            onCheckedChange={(checked) =>
+              onChange({ ...filters, onlyOverdue: checked === true })
+            }
+          >
+            {t("filter.onlyOverdue")}
+          </DropdownMenuCheckboxItem>
+          {hasFilters ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={clearAll}>{t("filter.clear")}</DropdownMenuItem>
+            </>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Toggle
-        variant="outline"
-        size="sm"
-        pressed={Boolean(filters.assigneeId && filters.assigneeId === currentUser?.id)}
-        onPressedChange={(pressed) =>
-          onChange({
-            ...filters,
-            assigneeId: pressed ? (currentUser?.id ?? null) : null,
-          })
-        }
-        disabled={!currentUser}
-        className="gap-1.5"
-      >
-        {t("filter.onlyMine")}
-      </Toggle>
-
-      <Toggle
-        variant="outline"
-        size="sm"
-        pressed={Boolean(filters.onlyOverdue)}
-        onPressedChange={(pressed) => onChange({ ...filters, onlyOverdue: pressed })}
-        className="gap-1.5"
-      >
-        {t("filter.onlyOverdue")}
-      </Toggle>
-
-      <span className="text-xs text-muted-foreground tabular-nums">
-        {t("filter.results", { count: formatNumber(resultCount) })}
-      </span>
-
       {hasFilters ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
-          onClick={() => {
-            setSearch("");
-            onChange({ search: "", assigneeId: null, onlyOverdue: false });
-          }}
-        >
-          <XIcon data-icon="inline-start" />
-          {t("filter.clear")}
-        </Button>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {t("filter.results", { count: formatNumber(resultCount) })}
+        </span>
       ) : null}
     </div>
   );

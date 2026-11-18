@@ -5,7 +5,7 @@ import { useLocale } from "@/components/locale-provider";
 import { toast } from "@/components/ui/toast";
 
 import { api, type WorkspacePayload } from "@/lib/api-client";
-import { getSupabaseClient } from "@/lib/supabase-client";
+import { SUPABASE_ENABLED, getSupabaseClient } from "@/lib/supabase-client";
 import type { Member, StorageInfo, Task, Workspace } from "@/lib/types";
 import type {
   GoalCreateInput,
@@ -107,7 +107,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = React.useState<string | null>(null);
   const [currentUserId, setCurrentUserIdState] = React.useState<string | null>(null);
-  const [realtimeStatus, setRealtimeStatus] = React.useState<"connected" | "connecting" | "offline">("connecting");
+  const [realtimeStatus, setRealtimeStatus] = React.useState<
+    "connected" | "connecting" | "offline"
+  >(() => (SUPABASE_ENABLED ? "connecting" : "offline"));
 
   // بارگذاری اولیه: کاربر فعال از مرورگر بازیابی می‌شود و سپس فضای کاری خوانده می‌شود.
   React.useEffect(() => {
@@ -144,10 +146,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   // همگام‌سازی زنده از طریق Supabase Realtime WebSocket
   React.useEffect(() => {
     const supabase = getSupabaseClient();
-    if (!supabase) {
-      setRealtimeStatus("offline");
-      return;
-    }
+    if (!supabase) return;
 
     const channel = supabase
       .channel("hamteam:workspace-doc")

@@ -6,11 +6,10 @@ import {
   EllipsisIcon,
   PencilIcon,
   PlusIcon,
-  TargetIcon,
   Trash2Icon,
 } from "lucide-react";
 
-import { GoalChip } from "@/components/chips";
+import { GoalStatusDot } from "@/components/chips";
 import { DateField } from "@/components/date-field";
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
@@ -51,26 +50,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import {
   Field,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/components/workspace-provider";
-import { formatDate, percentLabel } from "@/lib/dates";
+import { formatDateShort, percentLabel } from "@/lib/dates";
 import { goalProgress, sortTasks } from "@/lib/derived";
 import { goalDescription, goalTitle, memberName } from "@/lib/locale-text";
 import type { Goal, GoalStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void }) {
   const { locale, t, formatNumber } = useLocale();
@@ -83,37 +74,15 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
   const goals = workspace.goals;
 
   return (
-    <div className="flex flex-col gap-3">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold">{t("goals.heading")}</h2>
-          <p className="text-xs text-muted-foreground">
-            {t("goals.description", { count: formatNumber(goals.length) })}
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <PlusIcon data-icon="inline-start" />
-          {t("action.newGoal")}
-        </Button>
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-col gap-1">
+        <h2 className="text-base font-medium">{t("goals.heading")}</h2>
+        <p className="text-sm text-muted-foreground">
+          {t("goals.description", { count: formatNumber(goals.length) })}
+        </p>
       </header>
 
-      {goals.length === 0 ? (
-        <Empty className="rounded-xl border border-dashed">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <TargetIcon />
-            </EmptyMedia>
-            <EmptyTitle>{t("goals.empty")}</EmptyTitle>
-            <EmptyDescription>{t("goals.emptyHint")}</EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button size="sm" onClick={() => setCreating(true)}>
-              {t("action.newGoal")}
-            </Button>
-          </EmptyContent>
-        </Empty>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           {goals.map((goal) => {
             const progress = goalProgress(workspace, goal.id);
             const owner =
@@ -121,50 +90,35 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
             const goalTasks = sortTasks(
               workspace.tasks.filter((task) => task.goalId === goal.id),
             );
+            const achieved = goal.status === "achieved";
 
             return (
-              <Card key={goal.id} className="gap-3">
+              <Card key={goal.id} className="gap-4">
                 <CardHeader className="gap-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-start gap-2">
-                      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                        <TargetIcon className="size-4" aria-hidden="true" />
-                      </span>
-                      <div className="min-w-0">
-                        <CardTitle className="text-base leading-6 font-semibold">
-                          <span className="line-clamp-2">{goalTitle(locale, goal)}</span>
-                        </CardTitle>
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <GoalChip status={goal.status} />
-                          {goal.targetDate ? (
-                            <span className="text-xs text-muted-foreground tabular-nums">
-                              {formatDate(locale, goal.targetDate)}
-                            </span>
-                          ) : null}
-                          {owner ? (
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <MemberAvatar member={owner} size="sm" />
-                              {memberName(locale, owner)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-sm leading-6 font-medium">
+                        <span className="line-clamp-2">{goalTitle(locale, goal)}</span>
+                      </CardTitle>
+                      {goal.description || goal.descriptionEn ? (
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {goalDescription(locale, goal)}
+                        </p>
+                      ) : null}
                     </div>
-
                     <DropdownMenu>
                       <DropdownMenuTrigger
                         render={<Button variant="ghost" size="icon-sm" />}
                         aria-label={t("action.more")}
+                        className="-me-1 text-muted-foreground"
                       >
                         <EllipsisIcon />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuGroup>
                           <DropdownMenuItem
-                            disabled={goal.status === "achieved"}
-                            onClick={() =>
-                              void updateGoal(goal.id, { status: "achieved" })
-                            }
+                            disabled={achieved}
+                            onClick={() => void updateGoal(goal.id, { status: "achieved" })}
                           >
                             <CheckIcon data-icon="inline-start" />
                             {t("action.markAchieved")}
@@ -186,59 +140,71 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
                     </DropdownMenu>
                   </div>
 
-                  {goal.description || goal.descriptionEn ? (
-                    <p className="line-clamp-2 text-xs text-muted-foreground">
-                      {goalDescription(locale, goal)}
-                    </p>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <GoalStatusDot status={goal.status} />
+                    {owner ? (
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <MemberAvatar member={owner} size="sm" />
+                        {memberName(locale, owner)}
+                      </span>
+                    ) : null}
+                    {goal.targetDate ? (
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {formatDateShort(locale, goal.targetDate)}
+                      </span>
+                    ) : null}
+                  </div>
                 </CardHeader>
 
                 <CardContent className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{t("goals.progress")}</span>
-                    <span className="font-medium text-foreground tabular-nums">
+                  <div className="flex items-baseline justify-between gap-2 text-xs">
+                    <span className="text-muted-foreground tabular-nums">
+                      {t("goals.tasksCount", {
+                        done: formatNumber(progress.done),
+                        total: formatNumber(progress.total),
+                        blocked: formatNumber(progress.blocked),
+                      })}
+                    </span>
+                    <span className="font-medium tabular-nums">
                       {percentLabel(locale, progress.percent)}
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-[width]",
-                        goal.status === "achieved"
-                          ? "bg-status-done"
-                          : "bg-status-progress",
-                      )}
-                      style={{ width: `${progress.percent}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t("goals.tasksCount", {
-                      done: formatNumber(progress.done),
-                      total: formatNumber(progress.total),
-                      blocked: formatNumber(progress.blocked),
-                    })}
-                  </p>
-
-                  <div className="flex flex-col">
-                    {goalTasks.length === 0 ? (
-                      <p className="py-2 text-center text-xs text-muted-foreground">
-                        {t("goals.noTasks")}
-                      </p>
-                    ) : (
-                      goalTasks
-                        .slice(0, 4)
-                        .map((task) => (
-                          <MiniTaskRow
-                            key={task.id}
-                            task={task}
-                            onOpen={() => onOpenTask(task.id)}
-                          />
-                        ))
-                    )}
-                  </div>
+                  <Progress
+                    value={progress.percent}
+                    aria-label={t("goals.progress")}
+                    className="gap-0 [&_[data-slot=progress-indicator]]:transition-none"
+                  >
+                    <span className="sr-only">
+                      {percentLabel(locale, progress.percent)}
+                    </span>
+                  </Progress>
+                  {achieved ? (
+                    <div className="flex items-center gap-1.5 text-xs text-status-done">
+                      <CheckIcon className="size-3.5" aria-hidden="true" />
+                      {t("goalStatus.achieved")}
+                    </div>
+                  ) : null}
                 </CardContent>
 
-                <CardFooter className="justify-end gap-2">
+                <CardContent className="flex flex-col border-t">
+                  {goalTasks.length === 0 ? (
+                    <p className="py-3 text-center text-xs text-muted-foreground">
+                      {t("goals.noTasks")}
+                    </p>
+                  ) : (
+                    goalTasks
+                      .slice(0, 4)
+                      .map((task) => (
+                        <MiniTaskRow
+                          key={task.id}
+                          task={task}
+                          onOpen={() => onOpenTask(task.id)}
+                        />
+                      ))
+                  )}
+                </CardContent>
+
+                <CardFooter className="justify-end gap-2 border-t bg-transparent px-3 py-2">
                   <Button variant="ghost" size="sm" onClick={() => setEditing(goal)}>
                     <PencilIcon data-icon="inline-start" />
                     {t("action.edit")}
@@ -248,22 +214,21 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
             );
           })}
 
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => setCreating(true)}
-            className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/80 p-4 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
+            className="h-full min-h-40 flex-col gap-2 border-dashed bg-transparent font-normal text-muted-foreground hover:text-foreground"
           >
-            <PlusIcon className="size-5" aria-hidden="true" />
+            <PlusIcon />
             {t("goals.addCard")}
-          </button>
+          </Button>
         </div>
-      )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="md:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("goals.newTitle")}</DialogTitle>
-            <DialogDescription>{t("goals.emptyHint")}</DialogDescription>
+            <DialogDescription>{t("goals.newDescription")}</DialogDescription>
           </DialogHeader>
           <GoalForm key="new" goal={null} onDone={() => setCreating(false)} />
         </DialogContent>
@@ -278,7 +243,7 @@ export function GoalsView({ onOpenTask }: { onOpenTask: (taskId: string) => void
         <DialogContent className="md:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("goals.editTitle")}</DialogTitle>
-            <DialogDescription>{t("goals.editTitle")}</DialogDescription>
+            <DialogDescription>{t("goals.editDescription")}</DialogDescription>
           </DialogHeader>
           {editing ? (
             <GoalForm key={editing.id} goal={editing} onDone={() => setEditing(null)} />
@@ -351,8 +316,8 @@ function GoalForm({ goal, onDone }: { goal: Goal | null; onDone: () => void }) {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-      <FieldGroup className="gap-3">
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <FieldGroup className="gap-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field className="gap-1">
             <FieldLabel htmlFor="goal-title">{t("goals.title")}</FieldLabel>

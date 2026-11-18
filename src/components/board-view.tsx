@@ -3,7 +3,6 @@
 import * as React from "react";
 import { PlusIcon } from "lucide-react";
 
-import { CountBadge } from "@/components/chips";
 import { useLocale } from "@/components/locale-provider";
 import { TaskCard } from "@/components/task-card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +40,7 @@ export function BoardView({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 xl:grid-cols-5">
       {columns.map(({ status, tasks }) => {
         const meta = STATUS_META[status];
         const isTarget = dropTarget === status;
@@ -67,14 +66,16 @@ export function BoardView({
               if (taskId) move(taskId, status);
             }}
             className={cn(
-              "flex min-h-44 flex-col gap-2 rounded-xl border border-transparent bg-muted/40 p-2 transition-colors xl:min-h-[26rem]",
-              isTarget && "border-ring/60 bg-accent/50",
+              "flex min-h-24 flex-col gap-2 rounded-lg bg-muted/60 p-2 transition-colors sm:min-h-32",
+              isTarget && "bg-accent",
             )}
           >
-            <header className="flex items-center gap-2 px-1 pt-0.5">
-              <span className={cn("size-2 rounded-full", meta.dot)} aria-hidden="true" />
-              <h2 className="text-sm font-semibold tracking-wide">{t(meta.labelKey)}</h2>
-              <CountBadge value={tasks.length} className="h-5 px-1.5 text-xs" />
+            <header className="flex items-center gap-2 px-1 py-0.5">
+              <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden="true" />
+              <h2 className="text-sm font-medium">{t(meta.labelKey)}</h2>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {formatNumber(tasks.length)}
+              </span>
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -87,17 +88,13 @@ export function BoardView({
               </Button>
             </header>
 
-            <p className="px-1 text-xs text-muted-foreground">
-              {t(meta.hintKey)}
-            </p>
-
-            <div className="flex flex-1 flex-col gap-2">
-              {tasks.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/80 px-2 py-6 text-center text-xs text-muted-foreground">
-                  {t("board.empty")}
-                </div>
-              ) : (
-                tasks.map((task) => (
+            {tasks.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center rounded-md border border-dashed border-border px-3 py-5 text-center text-xs text-muted-foreground">
+                {t(meta.hintKey)}
+              </div>
+            ) : (
+              <div className="flex flex-1 flex-col gap-2">
+                {tasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
@@ -113,13 +110,9 @@ export function BoardView({
                       setDropTarget(null);
                     }}
                   />
-                ))
-              )}
-            </div>
-
-            <footer className="px-1 pb-0.5 text-[10px] text-muted-foreground tabular-nums">
-              {t("board.columnCount", { count: formatNumber(tasks.length) })}
-            </footer>
+                ))}
+              </div>
+            )}
           </section>
         );
       })}

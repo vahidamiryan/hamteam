@@ -9,11 +9,6 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 
-import {
-  DueChip,
-  PriorityChip,
-  StatusChip,
-} from "@/components/chips";
 import { DateField } from "@/components/date-field";
 import { EditableText } from "@/components/editable-text";
 import { MemberAvatar } from "@/components/member-avatar";
@@ -37,13 +32,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Card, CardContent } from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { Kbd } from "@/components/ui/kbd";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -52,7 +45,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import { useWorkspace } from "@/components/workspace-provider";
 import { commentsForTask } from "@/lib/derived";
 import { formatDateTime, formatRelative } from "@/lib/dates";
@@ -82,7 +74,7 @@ export function TaskSheet({
     <Sheet open={Boolean(taskId)} onOpenChange={onOpenChange}>
       <SheetContent
         side={isRtl ? "left" : "right"}
-        className="w-full gap-0 p-0 sm:max-w-xl md:max-w-2xl"
+        className="w-full gap-0 p-0 data-[side=left]:sm:max-w-lg data-[side=right]:sm:max-w-lg md:data-[side=left]:max-w-xl md:data-[side=right]:max-w-xl"
       >
         {task ? (
           <TaskSheetBody task={task} onClose={() => onOpenChange(false)} />
@@ -98,7 +90,7 @@ export function TaskSheet({
 }
 
 function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { locale, t } = useLocale();
+  const { locale, t, formatNumber } = useLocale();
   const {
     workspace,
     updateTask,
@@ -132,79 +124,75 @@ function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
 
   return (
     <>
-      <SheetHeader className="gap-3.5 border-b p-5 pe-12">
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusChip status={task.status} />
-          <PriorityChip priority={task.priority} />
-          {task.status !== "done" ? <DueChip dueDate={task.dueDate} /> : null}
-
-          <div className="ms-auto flex items-center gap-1">
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={<Button variant="ghost" size="icon-sm" />}
-                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                aria-label={t("task.delete")}
-                title={t("task.delete")}
-              >
-                <Trash2Icon className="size-4" />
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{t("task.deleteTitle")}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t("task.deleteDescription")}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      onClose();
-                      void deleteTask(task.id);
-                    }}
-                  >
-                    {t("action.delete")}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-
+      <SheetHeader className="gap-2 border-b p-5 pe-12">
         <SheetTitle className="sr-only">{taskTitle(locale, task)}</SheetTitle>
         <SheetDescription className="sr-only">{t("task.panelTitle")}</SheetDescription>
-        <div className="rounded-lg p-1 -m-1 transition-colors hover:bg-muted/30 focus-within:bg-muted/40">
-          <EditableText
-            value={taskTitle(locale, task)}
-            onCommit={patchTitle}
-            ariaLabel={t("task.title")}
-            placeholder={t("task.titlePlaceholder")}
-            maxLength={locale === "fa" ? 160 : 160}
-            className="text-xl leading-8 font-bold text-foreground"
-          />
+
+        <div className="flex items-start gap-2">
+          <div className="-m-1 flex-1 rounded-md p-1 transition-colors focus-within:bg-muted/50">
+            <EditableText
+              value={taskTitle(locale, task)}
+              onCommit={patchTitle}
+              ariaLabel={t("task.title")}
+              placeholder={t("task.titlePlaceholder")}
+              maxLength={160}
+              className="px-1.5 text-lg leading-7 font-medium text-foreground hover:bg-transparent focus:bg-transparent focus:ring-0"
+            />
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={<Button variant="ghost" size="icon-sm" />}
+              className="-me-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              aria-label={t("task.delete")}
+              title={t("task.delete")}
+            >
+              <Trash2Icon />
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("task.deleteTitle")}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t("task.deleteDescription")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onClose();
+                    void deleteTask(task.id);
+                  }}
+                >
+                  {t("action.delete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 font-medium text-foreground/85">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
             <MemberAvatar member={assignee} size="sm" />
             {assignee ? memberName(locale, assignee) : t("task.unassigned")}
           </span>
           {goal ? (
             <>
-              <span aria-hidden="true" className="text-muted-foreground/40">•</span>
-              <span className="inline-flex items-center gap-1 truncate text-primary/90 font-medium">
-                🎯 {goalTitle(locale, goal)}
+              <span aria-hidden="true" className="text-border">
+                ·
+              </span>
+              <span className="truncate">
+                {t("task.goal")}: {goalTitle(locale, goal)}
               </span>
             </>
           ) : null}
-          <span aria-hidden="true" className="text-muted-foreground/40">•</span>
-          <span className="text-muted-foreground/80">
-            {t("task.created", { when: formatRelative(locale, task.createdAt) })}
+          <span aria-hidden="true" className="text-border">
+            ·
           </span>
+          <span>{t("task.created", { when: formatRelative(locale, task.createdAt) })}</span>
         </div>
       </SheetHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-5 space-y-5">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
         {task.status === "blocked" ? (
           <Alert variant="destructive">
             <AlertTitle>{t("task.blockedBanner")}</AlertTitle>
@@ -216,97 +204,91 @@ function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
                 allowEmpty
                 ariaLabel={t("task.blocker")}
                 placeholder={t("task.blockerPlaceholder")}
-                className="-mx-1 text-sm mt-1"
+                className="mt-1 -mx-1 text-sm"
               />
             </AlertDescription>
           </Alert>
         ) : null}
 
-        {/* Properties Card */}
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-3.5 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field className="gap-1.5">
-              <FieldLabel className="text-xs font-medium text-muted-foreground">
-                {t("task.status")}
-              </FieldLabel>
-              <StatusPicker
-                value={task.status}
-                onChange={(status) => void updateTask(task.id, { status })}
-              />
-            </Field>
-            <Field className="gap-1.5">
-              <FieldLabel className="text-xs font-medium text-muted-foreground">
-                {t("task.priority")}
-              </FieldLabel>
-              <PriorityPicker
-                value={task.priority}
-                onChange={(priority) => void updateTask(task.id, { priority })}
-              />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field className="gap-1.5">
-              <FieldLabel className="text-xs font-medium text-muted-foreground">
-                {t("task.assignee")}
-              </FieldLabel>
-              <AssigneePicker
-                value={task.assigneeId}
-                members={members}
-                onChange={(assigneeId) => void updateTask(task.id, { assigneeId })}
-              />
-            </Field>
-            <Field className="gap-1.5">
-              <FieldLabel className="text-xs font-medium text-muted-foreground">
-                {t("task.due")}
-              </FieldLabel>
-              <DateField
-                value={task.dueDate}
-                onChange={(dueDate) => void updateTask(task.id, { dueDate })}
-                ariaLabel={t("task.due")}
-                placeholder={t("date.noneDue")}
-              />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field className="gap-1.5">
-              <FieldLabel className="text-xs font-medium text-muted-foreground">
-                {t("task.goal")}
-              </FieldLabel>
-              <GoalPicker
-                value={task.goalId}
-                goals={goals}
-                onChange={(goalId) => void updateTask(task.id, { goalId })}
-              />
-            </Field>
-            {task.status !== "blocked" && blocker ? (
+        <Card className="gap-0">
+          <CardContent>
+            <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field className="gap-1.5">
-                <FieldLabel className="text-xs font-medium text-muted-foreground">
-                  {t("task.blocker")}
+                <FieldLabel className="text-xs text-muted-foreground">
+                  {t("task.status")}
                 </FieldLabel>
-                <div className="rounded-md border border-border/70 bg-background/50 px-2.5 py-1.5 text-sm">
-                  <EditableText
-                    value={blocker}
-                    onCommit={patchBlocker}
-                    multiline
-                    allowEmpty
-                    ariaLabel={t("task.blocker")}
-                    placeholder={t("task.blockerPlaceholder")}
-                  />
-                </div>
+                <StatusPicker
+                  value={task.status}
+                  onChange={(status) => void updateTask(task.id, { status })}
+                />
               </Field>
-            ) : null}
-          </div>
-        </div>
+              <Field className="gap-1.5">
+                <FieldLabel className="text-xs text-muted-foreground">
+                  {t("task.priority")}
+                </FieldLabel>
+                <PriorityPicker
+                  value={task.priority}
+                  onChange={(priority) => void updateTask(task.id, { priority })}
+                />
+              </Field>
+              <Field className="gap-1.5">
+                <FieldLabel className="text-xs text-muted-foreground">
+                  {t("task.assignee")}
+                </FieldLabel>
+                <AssigneePicker
+                  value={task.assigneeId}
+                  members={members}
+                  onChange={(assigneeId) => void updateTask(task.id, { assigneeId })}
+                />
+              </Field>
+              <Field className="gap-1.5">
+                <FieldLabel className="text-xs text-muted-foreground">
+                  {t("task.due")}
+                </FieldLabel>
+                <DateField
+                  value={task.dueDate}
+                  onChange={(dueDate) => void updateTask(task.id, { dueDate })}
+                  ariaLabel={t("task.due")}
+                  placeholder={t("date.noneDue")}
+                />
+              </Field>
+              <Field className="gap-1.5">
+                <FieldLabel className="text-xs text-muted-foreground">
+                  {t("task.goal")}
+                </FieldLabel>
+                <GoalPicker
+                  value={task.goalId}
+                  goals={goals}
+                  onChange={(goalId) => void updateTask(task.id, { goalId })}
+                />
+              </Field>
+              {task.status !== "blocked" && blocker ? (
+                <Field className="gap-1.5">
+                  <FieldLabel className="text-xs text-muted-foreground">
+                    {t("task.blocker")}
+                  </FieldLabel>
+                  <div className="rounded-md border border-border px-2.5 py-2 text-sm">
+                    <EditableText
+                      value={blocker}
+                      onCommit={patchBlocker}
+                      multiline
+                      allowEmpty
+                      ariaLabel={t("task.blocker")}
+                      placeholder={t("task.blockerPlaceholder")}
+                    />
+                  </div>
+                </Field>
+              ) : null}
+            </FieldGroup>
+          </CardContent>
+        </Card>
 
-        {/* Description Section */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
-            <AlignLeftIcon className="size-3.5 text-muted-foreground" />
-            <span>{t("task.description")}</span>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-3 transition-colors hover:border-border/90 focus-within:border-primary/50 focus-within:bg-card/70 focus-within:ring-1 focus-within:ring-primary/20">
+        <section className="flex flex-col gap-1.5">
+          <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <AlignLeftIcon className="size-4" aria-hidden="true" />
+            {t("task.description")}
+          </h3>
+          <div className="-mx-2 rounded-md border border-transparent px-2 py-1.5 transition-colors hover:border-border focus-within:border-ring">
             <EditableText
               value={taskDescription(locale, task)}
               onCommit={patchDescription}
@@ -318,78 +300,65 @@ function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
               className="min-h-16 text-sm leading-6"
             />
           </div>
-        </div>
+        </section>
 
-        <Separator />
-
-        {/* Discussion Section */}
-        <section className="flex flex-col gap-3 pt-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MessageSquareIcon className="size-4 text-primary" />
-              <span className="text-sm font-semibold">{t("task.comments")}</span>
-              {comments.length > 0 && (
-                <span className="inline-flex items-center justify-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
-                  {comments.length}
-                </span>
-              )}
-            </div>
+        <section className="flex flex-col gap-3 border-t pt-5">
+          <div className="flex items-baseline gap-2">
+            <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <MessageSquareIcon className="size-4" aria-hidden="true" />
+              {t("task.comments")}
+            </h3>
+            {comments.length > 0 ? (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {formatNumber(comments.length)}
+              </span>
+            ) : null}
           </div>
 
           {comments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 py-8 px-4 text-center">
-              <div className="flex size-9 items-center justify-center rounded-full bg-muted/60 text-muted-foreground/60 mb-2">
-                <MessageSquareIcon className="size-4.5" />
-              </div>
-              <p className="text-xs text-muted-foreground font-medium">
-                {t("task.noComments")}
-              </p>
-            </div>
+            <p className="rounded-lg border border-dashed px-4 py-8 text-center text-xs text-muted-foreground">
+              {t("task.noComments")}
+            </p>
           ) : (
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-4">
               {comments.map((comment) => {
-                const author = members.find((m) => m.id === comment.authorId) ?? null;
+                const author = members.find((item) => item.id === comment.authorId) ?? null;
                 const isMine = author?.id === currentUser?.id;
                 return (
-                  <div
-                    key={comment.id}
-                    className={cn(
-                      "group relative flex gap-3 rounded-xl p-3 border transition-colors",
-                      isMine
-                        ? "bg-primary/5 border-primary/20"
-                        : "bg-muted/30 border-border/50"
-                    )}
-                  >
+                  <div key={comment.id} className="group flex gap-2.5">
                     <MemberAvatar
                       member={author}
                       size="sm"
                       withCard
-                      className="shrink-0 mt-0.5"
+                      className="mt-0.5 shrink-0"
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-semibold text-foreground">
-                            {author ? memberName(locale, author) : t("task.deletedMember")}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground/80">
-                            {formatRelative(locale, comment.createdAt)}
-                          </span>
-                        </div>
-                        {isMine && (
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="truncate text-xs font-medium">
+                          {author ? memberName(locale, author) : t("task.deletedMember")}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {formatRelative(locale, comment.createdAt)}
+                        </span>
+                        {isMine ? (
                           <Button
                             variant="ghost"
                             size="icon-xs"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive size-6 cursor-pointer"
+                            className="ms-auto text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-destructive"
                             aria-label={t("action.delete")}
                             title={t("action.delete")}
                             onClick={() => void deleteComment(comment.id)}
                           >
-                            <Trash2Icon className="size-3.5" />
+                            <Trash2Icon />
                           </Button>
-                        )}
+                        ) : null}
                       </div>
-                      <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed break-words">
+                      <p
+                        className={cn(
+                          "mt-0.5 text-start text-sm leading-6 break-words whitespace-pre-wrap [unicode-bidi:plaintext]",
+                          isMine ? "text-foreground" : "text-secondary-foreground",
+                        )}
+                      >
                         {commentBody(locale, comment)}
                       </p>
                     </div>
@@ -411,7 +380,6 @@ function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
                 );
                 return Boolean(payload);
               }}
-              hint={t("task.commentHint")}
               sendAs={t("task.sendAs", { name: memberName(locale, currentUser) })}
               placeholder={t("task.commentPlaceholder")}
               sendLabel={t("action.send")}
@@ -442,14 +410,12 @@ function TaskSheetBody({ task, onClose }: { task: Task; onClose: () => void }) {
 
 function CommentComposer({
   onSend,
-  hint,
   sendAs,
   placeholder,
   sendLabel,
   currentUser,
 }: {
   onSend: (body: string) => Promise<boolean>;
-  hint: string;
   sendAs: string;
   placeholder: string;
   sendLabel: string;
@@ -468,8 +434,8 @@ function CommentComposer({
   };
 
   return (
-    <div className="relative rounded-xl border border-border/70 bg-card/60 shadow-xs transition-all focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/10">
-      <textarea
+    <div className="overflow-hidden rounded-lg border bg-card transition-colors focus-within:border-ring">
+      <Textarea
         value={draft}
         dir="auto"
         onChange={(event) => setDraft(event.target.value)}
@@ -483,25 +449,27 @@ function CommentComposer({
         aria-label={placeholder}
         rows={2}
         maxLength={2000}
-        className="w-full resize-none bg-transparent p-3 text-sm outline-none placeholder:text-muted-foreground/60 min-h-16"
+        className="min-h-16 resize-none rounded-none border-0 bg-transparent p-3 text-sm shadow-none focus-visible:ring-0"
       />
-      <div className="flex items-center justify-between border-t border-border/40 px-3 py-2 bg-muted/20 rounded-b-xl gap-2">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          {currentUser && <MemberAvatar member={currentUser} size="sm" />}
-          <span className="truncate">{sendAs}</span>
-          <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-muted-foreground/75 ms-1">
-            <Kbd className="text-[10px] py-0 px-1">Ctrl</Kbd>+<Kbd className="text-[10px] py-0 px-1">Enter</Kbd>
-          </span>
-        </div>
+      <div className="flex items-center gap-2 border-t bg-muted/40 px-3 py-2">
+        {currentUser ? <MemberAvatar member={currentUser} size="sm" /> : null}
+        <span className="truncate text-xs text-muted-foreground">{sendAs}</span>
+        <span
+          dir="ltr"
+          className="ms-auto hidden items-center gap-1 text-xs text-muted-foreground sm:flex"
+        >
+          <Kbd>Ctrl</Kbd>
+          <span aria-hidden="true">+</span>
+          <Kbd>Enter</Kbd>
+        </span>
         <Button
-          variant="default"
           size="sm"
-          className="gap-1.5 h-8 px-3 font-medium cursor-pointer"
+          className="gap-1.5"
           onClick={() => void submit()}
           disabled={sending || draft.trim().length === 0}
         >
           <span>{sendLabel}</span>
-          <SendIcon className="size-3.5 rtl:rotate-180" />
+          <SendIcon className="rtl:rotate-180" data-icon="inline-end" />
         </Button>
       </div>
     </div>

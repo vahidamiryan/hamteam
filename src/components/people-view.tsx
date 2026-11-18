@@ -8,7 +8,6 @@ import {
   PlusIcon,
   Trash2Icon,
   UserCheckIcon,
-  UserPlusIcon,
 } from "lucide-react";
 
 import { MemberAvatar } from "@/components/member-avatar";
@@ -24,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,18 +48,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useWorkspace } from "@/components/workspace-provider";
-import { AVATAR_COUNT, randomAvatarIndex, avatarSrc } from "@/lib/avatars";
+import { AVATAR_OPTIONS, avatarSrc, randomAvatarIndex } from "@/lib/avatars";
 import { percentLabel } from "@/lib/dates";
 import { isOpen, memberStats, sortTasks } from "@/lib/derived";
 import { memberName, memberRole } from "@/lib/locale-text";
@@ -83,216 +77,164 @@ export function PeopleView({
   const members = workspace.members;
 
   return (
-    <div className="flex flex-col gap-3">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold">{t("people.heading")}</h2>
-          <p className="text-xs text-muted-foreground">
-            {t("people.description", { count: formatNumber(members.length) })}
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <UserPlusIcon data-icon="inline-start" />
-          {t("action.newMember")}
-        </Button>
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-col gap-1">
+        <h2 className="text-base font-medium">{t("people.heading")}</h2>
+        <p className="text-sm text-muted-foreground">
+          {t("people.description", { count: formatNumber(members.length) })}
+        </p>
       </header>
 
-      {members.length === 0 ? (
-        <Empty className="rounded-xl border border-dashed">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <UserPlusIcon />
-            </EmptyMedia>
-            <EmptyTitle>{t("people.empty")}</EmptyTitle>
-            <EmptyDescription>{t("people.emptyHint")}</EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button size="sm" onClick={() => setCreating(true)}>
-              {t("action.newMember")}
-            </Button>
-          </EmptyContent>
-        </Empty>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {members.map((member) => {
-            const stats = memberStats(workspace, member.id);
-            const openTasks = sortTasks(
-              workspace.tasks.filter(
-                (task) => task.assigneeId === member.id && isOpen(task),
-              ),
-            ).slice(0, 3);
-            const isMe = currentUser?.id === member.id;
-            const percent =
-              stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {members.map((member) => {
+          const stats = memberStats(workspace, member.id);
+          const openTasks = sortTasks(
+            workspace.tasks.filter(
+              (task) => task.assigneeId === member.id && isOpen(task),
+            ),
+          ).slice(0, 3);
+          const isMe = currentUser?.id === member.id;
+          const percent =
+            stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
 
-            return (
-              <Card key={member.id} className="gap-3">
-                <CardHeader className="gap-2">
-                  <div className="flex items-start gap-2">
-                    <MemberAvatar member={member} size="lg" withCard />
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="flex items-center gap-1.5 text-base font-semibold">
-                        <span className="truncate">{memberName(locale, member)}</span>
-                        {isMe ? (
-                          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                            {t("people.you")}
-                          </span>
-                        ) : null}
-                      </CardTitle>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {memberRole(locale, member) || "—"}
-                      </p>
-                      {member.email ? (
-                        <p
-                          dir="ltr"
-                          className="truncate text-xs text-muted-foreground text-start"
-                        >
-                          {member.email}
-                        </p>
+          return (
+            <Card key={member.id} className="gap-4">
+              <CardHeader className="gap-0">
+                <div className="flex items-start gap-3">
+                  <MemberAvatar member={member} size="lg" withCard />
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="flex items-baseline gap-1.5 text-sm font-medium">
+                      <span className="truncate">{memberName(locale, member)}</span>
+                      {isMe ? (
+                        <span className="shrink-0 text-xs font-normal text-primary">
+                          {t("people.you")}
+                        </span>
                       ) : null}
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={<Button variant="ghost" size="icon-sm" />}
-                        aria-label={t("action.more")}
-                      >
-                        <EllipsisIcon />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem
-                            onClick={() => setCurrentUserId(member.id)}
-                            disabled={isMe}
-                          >
-                            <UserCheckIcon data-icon="inline-start" />
-                            {t("action.thisIsMe")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onShowTasks(member.id)}>
-                            <LayoutGridIcon data-icon="inline-start" />
-                            {t("action.viewTasks")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setEditing(member)}>
-                            <PencilIcon data-icon="inline-start" />
-                            {t("action.edit")}
-                          </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
+                    </CardTitle>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {memberRole(locale, member) || member.email || "—"}
+                    </p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={<Button variant="ghost" size="icon-sm" />}
+                      aria-label={t("action.more")}
+                      className="-me-1 text-muted-foreground"
+                    >
+                      <EllipsisIcon />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuGroup>
                         <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => setRemoving(member)}
+                          onClick={() => setCurrentUserId(member.id)}
+                          disabled={isMe}
                         >
-                          <Trash2Icon data-icon="inline-start" />
-                          {t("action.delete")}
+                          <UserCheckIcon data-icon="inline-start" />
+                          {t("action.thisIsMe")}
                         </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="flex flex-col gap-2">
-                  <div className="grid grid-cols-4 gap-1">
-                    {[
-                      { label: t("stats.open"), value: stats.open },
-                      { label: t("stats.inProgress"), value: stats.inProgress },
-                      { label: t("stats.blocked"), value: stats.blocked },
-                      { label: t("stats.overdue"), value: stats.overdue },
-                    ].map((stat) => (
-                      <div
-                        key={stat.label}
-                        className={cn(
-                          "rounded-md border border-border/60 bg-muted/30 px-1 py-1 text-center",
-                          stat.label === t("stats.overdue") &&
-                            stat.value > 0 &&
-                            "border-status-blocked/40 bg-status-blocked/10 text-status-blocked",
-                        )}
+                        <DropdownMenuItem onClick={() => onShowTasks(member.id)}>
+                          <LayoutGridIcon data-icon="inline-start" />
+                          {t("action.viewTasks")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditing(member)}>
+                          <PencilIcon data-icon="inline-start" />
+                          {t("action.edit")}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setRemoving(member)}
                       >
-                        <div className="text-sm font-semibold tabular-nums">
-                          {formatNumber(stat.value)}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {stat.label}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                        <Trash2Icon data-icon="inline-start" />
+                        {t("action.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
 
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      {t("people.doneOf", {
-                        done: formatNumber(stats.done),
-                        total: formatNumber(stats.total),
-                      })}
-                    </span>
-                    <span className="tabular-nums">{percentLabel(locale, percent)}</span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-status-done transition-[width]"
-                      style={{ width: `${percent}%` }}
+              <CardContent className="flex flex-col gap-2">
+                <div className="flex items-baseline justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground tabular-nums">
+                    {t("people.doneOf", {
+                      done: formatNumber(stats.done),
+                      total: formatNumber(stats.total),
+                    })}
+                    {stats.overdue > 0 ? (
+                      <>
+                        {" · "}
+                        <span className="text-destructive">
+                          {t("stats.overdue")} {formatNumber(stats.overdue)}
+                        </span>
+                      </>
+                    ) : null}
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {percentLabel(locale, percent)}
+                  </span>
+                </div>
+                <Progress
+                  value={percent}
+                  aria-label={t("people.doneOf", {
+                    done: formatNumber(stats.done),
+                    total: formatNumber(stats.total),
+                  })}
+                  className="gap-0"
+                />
+              </CardContent>
+
+              <CardContent className="flex flex-col border-t">
+                {openTasks.length === 0 ? (
+                  <p className="py-3 text-center text-xs text-muted-foreground">
+                    {t("people.noOpen")}
+                  </p>
+                ) : (
+                  openTasks.map((task) => (
+                    <MiniTaskRow
+                      key={task.id}
+                      task={task}
+                      onOpen={() => onOpenTask(task.id)}
                     />
-                  </div>
+                  ))
+                )}
+              </CardContent>
 
-                  <div className="flex flex-col">
-                    {openTasks.length === 0 ? (
-                      <p className="py-2 text-center text-xs text-muted-foreground">
-                        {t("people.noOpen")}
-                      </p>
-                    ) : (
-                      openTasks.map((task) => (
-                        <MiniTaskRow
-                          key={task.id}
-                          task={task}
-                          onOpen={() => onOpenTask(task.id)}
-                        />
-                      ))
-                    )}
-                  </div>
-                </CardContent>
+              <CardFooter className="justify-between gap-2 border-t bg-transparent px-3 py-2">
+                <Button variant="ghost" size="sm" onClick={() => onShowTasks(member.id)}>
+                  <LayoutGridIcon data-icon="inline-start" />
+                  {t("action.viewTasks")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isMe}
+                  onClick={() => setCurrentUserId(member.id)}
+                >
+                  {isMe ? t("people.you") : t("action.thisIsMe")}
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
 
-                <CardFooter className="justify-between gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onShowTasks(member.id)}
-                  >
-                    <LayoutGridIcon data-icon="inline-start" />
-                    {t("action.viewTasks")}
-                  </Button>
-                  <Button
-                    variant={isMe ? "secondary" : "outline"}
-                    size="sm"
-                    disabled={isMe}
-                    onClick={() => setCurrentUserId(member.id)}
-                  >
-                    {isMe ? t("people.you") : t("action.thisIsMe")}
-                  </Button>
-                </CardFooter>
-              </Card>
-            );
-          })}
-
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="flex min-h-56 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/80 p-4 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none"
-          >
-            <PlusIcon className="size-5" aria-hidden="true" />
-            {t("people.addCard")}
-          </button>
-        </div>
-      )}
+        <Button
+          variant="outline"
+          onClick={() => setCreating(true)}
+          className="h-full min-h-40 flex-col gap-2 border-dashed bg-transparent font-normal text-muted-foreground hover:text-foreground"
+        >
+          <PlusIcon />
+          {t("people.addCard")}
+        </Button>
+      </div>
 
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="md:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("member.newTitle")}</DialogTitle>
-            <DialogDescription>{t("people.emptyHint")}</DialogDescription>
+            <DialogDescription>{t("member.newDescription")}</DialogDescription>
           </DialogHeader>
-          <MemberForm
-            key="new"
-            member={null}
-            onDone={() => setCreating(false)}
-          />
+          <MemberForm key="new" member={null} onDone={() => setCreating(false)} />
         </DialogContent>
       </Dialog>
 
@@ -305,7 +247,7 @@ export function PeopleView({
         <DialogContent className="md:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("member.editTitle")}</DialogTitle>
-            <DialogDescription>{t("member.editTitle")}</DialogDescription>
+            <DialogDescription>{t("member.editDescription")}</DialogDescription>
           </DialogHeader>
           {editing ? (
             <MemberForm
@@ -347,13 +289,7 @@ export function PeopleView({
   );
 }
 
-function MemberForm({
-  member,
-  onDone,
-}: {
-  member: Member | null;
-  onDone: () => void;
-}) {
+function MemberForm({ member, onDone }: { member: Member | null; onDone: () => void }) {
   const { t } = useLocale();
   const { createMember, updateMember } = useWorkspace();
   const [name, setName] = React.useState(member?.name ?? "");
@@ -386,37 +322,45 @@ function MemberForm({
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-      <FieldGroup className="gap-3">
-        <div className="flex flex-col items-center gap-2">
-          <span
-            role="img"
-            aria-label={`آواتار ${avatarIndex + 1}`}
-            className="size-16 rounded-full border bg-muted bg-cover bg-center"
-            style={{ backgroundImage: `url(${avatarSrc(avatarIndex)})` }}
-          />
-          <div className="grid grid-cols-6 gap-1.5">
-            {Array.from({ length: AVATAR_COUNT }, (_, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setAvatarIndex(index)}
-                aria-label={`آواتار ${index + 1}`}
-                aria-pressed={index === avatarIndex}
-                className={cn(
-                  "size-8 rounded-full border-2 border-transparent bg-muted bg-cover bg-center transition",
-                  index === avatarIndex
-                    ? "border-primary ring-2 ring-primary/30"
-                    : "opacity-70 hover:opacity-100",
-                )}
-                style={{ backgroundImage: `url(${avatarSrc(index)})` }}
-              />
-            ))}
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <FieldGroup className="gap-4">
+        <Field className="gap-2">
+          <FieldLabel className="text-xs text-muted-foreground">
+            {t("member.avatar")}
+          </FieldLabel>
+          <div className="flex items-center gap-3">
+            <Avatar size="lg" className="shrink-0">
+              <AvatarImage src={avatarSrc(avatarIndex)} alt="" />
+              <AvatarFallback />
+            </Avatar>
+            <RadioGroup
+              value={String(avatarIndex)}
+              onValueChange={(next) => setAvatarIndex(Number(next))}
+              aria-label={t("member.avatar")}
+              className="grid grid-cols-6 gap-1.5"
+            >
+              {AVATAR_OPTIONS.map((option) => (
+                <RadioGroupItem
+                  key={option.index}
+                  value={String(option.index)}
+                  aria-label={t("member.avatarOption", {
+                    count: String(option.index + 1),
+                  })}
+                  className={cn(
+                    "size-8 overflow-hidden rounded-full border-transparent bg-muted bg-cover bg-center opacity-60 transition-opacity",
+                    "after:hidden data-checked:border-transparent data-checked:bg-transparent data-checked:opacity-100",
+                    "data-checked:ring-2 data-checked:ring-primary data-checked:ring-offset-2 data-checked:ring-offset-card",
+                    "[&_[data-slot=radio-group-indicator]]:hidden",
+                  )}
+                  style={{ backgroundImage: `url(${option.src})` }}
+                />
+              ))}
+            </RadioGroup>
           </div>
-        </div>
+        </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field className="gap-1">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
             <FieldLabel htmlFor="member-name">{t("member.name")}</FieldLabel>
             <Input
               id="member-name"
@@ -428,8 +372,10 @@ function MemberForm({
               dir="auto"
             />
           </Field>
-          <Field className="gap-1">
-            <FieldLabel htmlFor="member-name-en">Name (EN)</FieldLabel>
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="member-name-en" className="text-muted-foreground">
+              Name (EN)
+            </FieldLabel>
             <Input
               id="member-name-en"
               value={nameEn}
@@ -441,8 +387,8 @@ function MemberForm({
           </Field>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field className="gap-1">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
             <FieldLabel htmlFor="member-role">{t("member.role")}</FieldLabel>
             <Input
               id="member-role"
@@ -453,8 +399,10 @@ function MemberForm({
               dir="auto"
             />
           </Field>
-          <Field className="gap-1">
-            <FieldLabel htmlFor="member-role-en">Role (EN)</FieldLabel>
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="member-role-en" className="text-muted-foreground">
+              Role (EN)
+            </FieldLabel>
             <Input
               id="member-role-en"
               value={roleEn}
@@ -466,7 +414,7 @@ function MemberForm({
           </Field>
         </div>
 
-        <Field className="gap-1">
+        <Field className="gap-1.5">
           <FieldLabel htmlFor="member-email">{t("member.email")}</FieldLabel>
           <Input
             id="member-email"

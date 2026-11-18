@@ -27,6 +27,7 @@ const messages = {
   "app.loading": ["در حال بارگذاری فضای کاری…", "Loading workspace…"],
   "app.loadError": ["بارگذاری فضای کاری ناموفق بود", "Could not load the workspace"],
   "app.language": ["زبان", "Language"],
+  "app.lastUpdated": ["آخرین تغییر {when}", "Last updated {when}"],
   "app.fa": ["فارسی", "فارسی"],
   "app.en": ["English", "English"],
   "theme.label": ["حالت نمایش", "Theme"],
@@ -36,6 +37,7 @@ const messages = {
   "theme.system": ["سیستم", "System"],
 
   // ── ناوبری و نماها
+  "nav.views": ["نماها", "Views"],
   "nav.board": ["برد کارها", "Board"],
   "nav.table": ["جدول", "Table"],
   "nav.people": ["افراد", "People"],
@@ -95,11 +97,9 @@ const messages = {
   "stats.late": ["عقب‌افتاده", "Late"],
 
   // ── فیلترها
-  "filter.search": [
-    "جست‌وجو در عنوان، توضیح یا دلیل مسدودی…",
-    "Search titles, notes or blockers…",
-  ],
+  "filter.search": ["جست‌وجو در تسک‌ها", "Search tasks"],
   "filter.all": ["همه", "All"],
+  "filter.title": ["فیلترها", "Filters"],
   "filter.assignee": ["مسئول", "Assignee"],
   "filter.onlyMine": ["فقط تسک‌های من", "Only my tasks"],
   "filter.onlyOverdue": ["فقط سررسید گذشته", "Only overdue"],
@@ -107,7 +107,6 @@ const messages = {
   "filter.results": ["{count} تسک", "{count} tasks"],
   "filter.none": ["هیچ تسکی با این فیلترها پیدا نشد", "No tasks match these filters"],
   "filter.noneHint": ["فیلترها را پاک کنید یا تسک تازه بسازید.", "Clear the filters or create a task."],
-  "filter.title": ["فیلترها", "Filters"],
 
   // ── برد
   "board.empty": ["ستون خالی است", "Nothing here yet"],
@@ -117,6 +116,10 @@ const messages = {
 
   // ── تسک
   "task.title": ["عنوان تسک", "Task title"],
+  "task.newDescription": [
+    "عنوان، مسئول و سررسید را مشخص کنید؛ بقیه را بعداً هم می‌توانید تغییر دهید.",
+    "Set the title, owner and due date. Everything else can change later.",
+  ],
   "task.titlePlaceholder": [
     "مثلاً: آماده‌سازی گزارش هفتگی تیم",
     "e.g. Prepare the weekly team report",
@@ -148,6 +151,7 @@ const messages = {
     "The task and all of its messages will be deleted permanently.",
   ],
   "task.comments": ["همفکری و کامنت‌ها", "Discussion"],
+  "task.commentsCount": ["{count} پیام", "{count} messages"],
   "task.noComments": [
     "هنوز گفت‌وگویی ثبت نشده. اولین پرسش یا تصمیم را بنویسید.",
     "No messages yet. Start with a question or a decision.",
@@ -178,7 +182,7 @@ const messages = {
   "date.nextMonth": ["ماه بعد", "Next month"],
   "due.overdue": ["{count} روز گذشته", "{count} days late"],
   "due.yesterday": ["دیروز گذشته", "Yesterday"],
-  "due.today": ["امروز", "Due today"],
+  "due.today": ["امروز", "Today"],
   "due.tomorrow": ["فردا", "Due tomorrow"],
   "due.inDays": ["{count} روز مانده", "In {count} days"],
   "due.none": ["بدون سررسید", "No due date"],
@@ -191,8 +195,8 @@ const messages = {
   // ── افراد
   "people.heading": ["افراد تیم", "Team members"],
   "people.description": [
-    "{count} نفر. هر تسک می‌تواند به یکی از این افراد سپرده شود.",
-    "{count} people. Any task can be assigned to one of them.",
+    "{count} نفر در تیم. هر تسک می‌تواند به یکی از آن‌ها سپرده شود.",
+    "{count} in the team. Any task can be assigned to one of them.",
   ],
   "people.you": ["شما", "You"],
   "people.noOpen": ["تسک باز ندارد", "No open tasks"],
@@ -205,8 +209,18 @@ const messages = {
   "member.role": ["نقش", "Role"],
   "member.rolePlaceholder": ["مثلاً: مدیر محصول", "e.g. Product manager"],
   "member.email": ["ایمیل", "Email"],
+  "member.avatar": ["آواتار", "Avatar"],
+  "member.avatarOption": ["آواتار {count}", "Avatar {count}"],
   "member.emailPlaceholder": ["name@team.com", "name@team.com"],
   "member.editTitle": ["ویرایش عضو", "Edit member"],
+  "member.editDescription": [
+    "نام، نقش، ایمیل و آواتار این عضو را تغییر دهید.",
+    "Change this member's name, role, email and avatar.",
+  ],
+  "member.newDescription": [
+    "هم‌تیمی تازه را با نام و نقشش اضافه کنید.",
+    "Add a teammate with a name and a role.",
+  ],
   "member.newTitle": ["عضو جدید", "New member"],
   "member.deleteTitle": ["این عضو حذف شود؟", "Remove this member?"],
   "member.deleteDescription": [
@@ -217,8 +231,8 @@ const messages = {
   // ── اهداف
   "goals.heading": ["اهداف تیمی", "Team goals"],
   "goals.description": [
-    "{count} هدف. تسک‌ها را به هدف‌ها وصل کنید تا پیشرفت خودکار محاسبه شود.",
-    "{count} goals. Link tasks to a goal to track progress automatically.",
+    "{count} هدف. با اتصال تسک‌ها پیشرفت خودکار محاسبه می‌شود.",
+    "{count}. Link tasks to a goal to track progress automatically.",
   ],
   "goals.empty": ["هدفی تعریف نشده", "No goals yet"],
   "goals.emptyHint": ["یک هدف بلندمدت بسازید و تسک‌ها را به آن وصل کنید.", "Create a long-term goal and link tasks to it."],
@@ -229,7 +243,10 @@ const messages = {
     "{done} of {total} tasks done",
   ],
   "goals.noTasks": ["هنوز تسکی به این هدف وصل نشده", "No tasks linked yet"],
-  "goals.tasksCount": ["{done} انجام‌شده · {total} تسک · {blocked} مسدود", "{done} done · {total} tasks · {blocked} blocked"],
+  "goals.tasksCount": [
+    "{done} انجام‌شده · {total} کل · {blocked} مسدود",
+    "{done} done · {total} total · {blocked} blocked",
+  ],
   "goals.title": ["عنوان هدف", "Goal title"],
   "goals.titlePlaceholder": ["مثلاً: انتشار نسخه ۱.۰ محصول", "e.g. Ship version 1.0"],
   "goals.descriptionLabel": ["توضیح هدف", "Goal description"],
@@ -239,6 +256,14 @@ const messages = {
   "goals.status": ["وضعیت هدف", "Goal status"],
   "goals.newTitle": ["هدف تازه", "New goal"],
   "goals.editTitle": ["ویرایش هدف", "Edit goal"],
+  "goals.editDescription": [
+    "عنوان، مالک، تاریخ هدف و وضعیت را به‌روز کنید.",
+    "Update the title, owner, target date and status.",
+  ],
+  "goals.newDescription": [
+    "یک هدف بلندمدت تیمی و زمان تحقق آن را تعیین کنید.",
+    "Set a long-term team goal and when it should land.",
+  ],
   "goals.deleteTitle": ["این هدف حذف شود؟", "Delete this goal?"],
   "goals.deleteDescription": [
     "هدف حذف می‌شود؛ تسک‌ها می‌مانند ولی بدون هدف.",
@@ -247,6 +272,7 @@ const messages = {
 
   // ── جدول
   "table.task": ["تسک", "Task"],
+  "table.commentsShort": ["پیام", "Msgs"],
   "table.selected": ["{count} تسک انتخاب شده", "{count} selected"],
   "table.markDone": ["انجام شد", "Mark done"],
   "table.empty": ["تسکی برای نمایش نیست", "No tasks to show"],

@@ -1,11 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { MessageSquareIcon } from "lucide-react";
 
-import { DueChip, DoneChip, GoalTag, PriorityChip } from "@/components/chips";
+import { DueStamp, DoneChip, GoalTag, PriorityDot } from "@/components/chips";
 import { MemberAvatar } from "@/components/member-avatar";
 import { useLocale } from "@/components/locale-provider";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useWorkspace } from "@/components/workspace-provider";
 import { goalTitle, memberName, taskBlocker, taskTitle } from "@/lib/locale-text";
 import { cn } from "@/lib/utils";
@@ -35,9 +41,11 @@ export function TaskCard({
   const commentCount =
     workspace?.comments.filter((comment) => comment.taskId === task.id).length ?? 0;
   const blocker = taskBlocker(locale, task);
+  const isDone = task.status === "done";
 
   return (
-    <article
+    <Card
+      size="sm"
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -53,45 +61,52 @@ export function TaskCard({
       aria-label={t("action.openTask")}
       data-dragging={dragging ? "true" : undefined}
       className={cn(
-        "group/card cursor-grab rounded-xl border border-border/80 bg-card p-3 text-start shadow-xs transition-[box-shadow,border-color,transform,opacity] outline-none select-none",
-        "hover:border-ring/50 hover:shadow-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+        "cursor-grab gap-2.5 text-start transition-colors outline-none select-none",
+        "ring-foreground/8 hover:ring-foreground/15 focus-visible:ring-2 focus-visible:ring-ring",
         "data-dragging:opacity-40 active:cursor-grabbing",
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="line-clamp-2 text-base leading-6 font-semibold">
+      <CardHeader className="gap-1.5">
+        <CardTitle className="line-clamp-2 text-sm leading-6 font-medium break-words">
           {taskTitle(locale, task)}
-        </h3>
-        {task.status === "done" ? <DoneChip className="shrink-0" /> : null}
-      </div>
+        </CardTitle>
+        {task.status === "blocked" && blocker ? (
+          <p className="line-clamp-2 border-s-2 border-status-blocked/40 ps-2 text-xs leading-5 text-status-blocked">
+            {blocker}
+          </p>
+        ) : null}
+      </CardHeader>
 
-      {task.status === "blocked" && blocker ? (
-        <p className="mt-2 line-clamp-2 rounded-md bg-status-blocked/10 px-2 py-1 text-xs leading-5 text-status-blocked">
-          {blocker}
-        </p>
-      ) : null}
+      <CardContent className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {isDone ? (
+          <DoneChip />
+        ) : (
+          <>
+            <PriorityDot priority={task.priority} />
+            {goal ? <GoalTag title={goalTitle(locale, goal)} className="max-w-40" /> : null}
+            {commentCount > 0 ? (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {t("task.commentsCount", { count: formatNumber(commentCount) })}
+              </span>
+            ) : null}
+          </>
+        )}
+      </CardContent>
 
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <PriorityChip priority={task.priority} />
-        {task.status !== "done" ? <DueChip dueDate={task.dueDate} /> : null}
-        {goal ? <GoalTag title={goalTitle(locale, goal)} /> : null}
-      </div>
-
-      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/70 pt-2">
-        <div className="flex min-w-0 items-center gap-1.5">
+      <CardFooter className="justify-between gap-2 border-t bg-transparent px-3 py-2">
+        <span className="flex min-w-0 items-center gap-1.5">
           <MemberAvatar member={assignee} size="sm" withCard />
           <span className="truncate text-xs text-muted-foreground">
             {assignee ? memberName(locale, assignee) : t("task.unassigned")}
           </span>
-        </div>
-        {commentCount > 0 ? (
-          <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground tabular-nums">
-            <MessageSquareIcon className="size-3.5" aria-hidden="true" />
-            {formatNumber(commentCount)}
-          </span>
-        ) : null}
-      </div>
-    </article>
+        </span>
+        <DueStamp
+          dueDate={task.dueDate}
+          status={task.status}
+          className="shrink-0"
+        />
+      </CardFooter>
+    </Card>
   );
 }

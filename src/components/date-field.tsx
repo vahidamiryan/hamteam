@@ -188,7 +188,7 @@ export function DateField({
           </Button>
         </div>
 
-        <div className="grid grid-cols-7 gap-0.5 pb-1 text-center text-[10px] text-muted-foreground">
+        <div className="grid grid-cols-7 gap-0.5 pb-1 text-center text-xs text-muted-foreground">
           {weekdays.map((weekday) => (
             <span key={weekday}>{weekday}</span>
           ))}

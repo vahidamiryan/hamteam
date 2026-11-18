@@ -38,7 +38,7 @@ export function MemberAvatar({
   withCard?: boolean;
   className?: string;
 }) {
-  const { locale, t } = useLocale();
+  const { locale } = useLocale();
 
   if (!member) return <UnassignedAvatar size={size} className={className} />;
 
@@ -82,9 +82,7 @@ export function MemberAvatar({
               </ItemContent>
             </Item>
           </>
-        ) : (
-          <p className="mt-3 text-xs text-muted-foreground">{t("task.unassigned")}</p>
-        )}
+        ) : null}
       </HoverCardContent>
     </HoverCard>
   );

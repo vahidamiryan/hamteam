@@ -5,6 +5,7 @@ import { useLocale } from "@/components/locale-provider";
 import { toast } from "@/components/ui/toast";
 
 import { api, type WorkspacePayload } from "@/lib/api-client";
+import { getSupabaseClient } from "@/lib/supabase-client";
 import type { Member, StorageInfo, Task, Workspace } from "@/lib/types";
 import type {
   GoalCreateInput,
@@ -28,6 +29,7 @@ type WorkspaceContextValue = {
   workspace: Workspace | null;
   storage: StorageInfo | null;
   status: "loading" | "ready" | "error";
+  realtimeStatus: "connected" | "connecting" | "offline";
   error: string | null;
   currentUser: Member | null;
   setCurrentUserId: (memberId: string) => void;
@@ -105,6 +107,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = React.useState<string | null>(null);
   const [currentUserId, setCurrentUserIdState] = React.useState<string | null>(null);
+  const [realtimeStatus, setRealtimeStatus] = React.useState<"connected" | "connecting" | "offline">("connecting");
 
   // بارگذاری اولیه: کاربر فعال از مرورگر بازیابی می‌شود و سپس فضای کاری خوانده می‌شود.
   React.useEffect(() => {
@@ -137,6 +140,50 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       active = false;
     };
   }, [t]);
+
+  // همگام‌سازی زنده از طریق Supabase Realtime WebSocket
+  React.useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setRealtimeStatus("offline");
+      return;
+    }
+
+    const channel = supabase
+      .channel("hamteam:workspace-doc")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "workspace_doc",
+        },
+        (payload) => {
+          const newDoc = payload.new as { data?: Workspace; version?: number } | undefined;
+          if (newDoc?.data && typeof newDoc.data.version === "number") {
+            setWorkspace((current) => {
+              if (!current || newDoc.data!.version >= current.version) {
+                return newDoc.data!;
+              }
+              return current;
+            });
+          }
+        },
+      )
+      .subscribe((subStatus) => {
+        if (subStatus === "SUBSCRIBED") {
+          setRealtimeStatus("connected");
+        } else if (subStatus === "CLOSED" || subStatus === "CHANNEL_ERROR") {
+          setRealtimeStatus("offline");
+        } else {
+          setRealtimeStatus("connecting");
+        }
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 
   const refresh = React.useCallback(async () => {
     try {
@@ -187,6 +234,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [refresh, t],
   );
 
+  // همگام‌سازی خودکار در زمان بازگشت به تب مرورگر
+  React.useEffect(() => {
+    const handleSync = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        void refresh();
+      }
+    };
+    window.addEventListener("focus", handleSync);
+    document.addEventListener("visibilitychange", handleSync);
+    return () => {
+      window.removeEventListener("focus", handleSync);
+      document.removeEventListener("visibilitychange", handleSync);
+    };
+  }, [refresh]);
+
   const value = React.useMemo<WorkspaceContextValue>(() => {
     // اگر عضو انتخاب‌شده حذف شده باشد، اولین عضو تیم به‌عنوان «من» در نظر گرفته می‌شود.
     const currentUser =
@@ -199,6 +261,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       workspace,
       storage,
       status,
+      realtimeStatus,
       error,
       currentUser,
       setCurrentUserId,
@@ -296,6 +359,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     workspace,
     storage,
     status,
+    realtimeStatus,
     error,
     currentUserId,
     setCurrentUserId,

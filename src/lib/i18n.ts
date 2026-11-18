@@ -288,6 +288,18 @@ const messages = {
     "Pick who you are first.",
   ],
 
+  // ── همگام‌سازی زنده
+  "realtime.live": ["زنده (WebSocket)", "Live (WebSocket)"],
+  "realtime.connectedTitle": [
+    "متصل به وب‌سوکت — تغییرات سایر کاربران بدون رفرش بلافاصله نمایش داده می‌شود.",
+    "Connected to WebSocket — real-time updates enabled.",
+  ],
+  "realtime.connecting": ["اتصال زنده...", "Connecting..."],
+  "realtime.connectingTitle": [
+    "در حال اتصال به سرور همگام‌سازی زنده...",
+    "Connecting to real-time sync server...",
+  ],
+
   // ── اعتبارسنجی
   "form.required": ["این فیلد لازم است", "This field is required"],
   "form.invalidEmail": ["ایمیل معتبر نیست", "Enter a valid email"],

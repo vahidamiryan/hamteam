@@ -73,6 +73,7 @@ export function AppShell() {
     workspace,
     storage,
     status,
+    realtimeStatus,
     error,
     currentUser,
     setCurrentUserId,
@@ -151,6 +152,24 @@ export function AppShell() {
           </ToggleGroup>
 
           <div className="ms-auto flex items-center gap-1.5">
+            {realtimeStatus === "connected" ? (
+              <div
+                className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 select-none"
+                title={t("realtime.connectedTitle")}
+              >
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{t("realtime.live")}</span>
+              </div>
+            ) : realtimeStatus === "connecting" ? (
+              <div
+                className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 select-none"
+                title={t("realtime.connectingTitle")}
+              >
+                <span className="size-1.5 rounded-full bg-amber-500" />
+                <span>{t("realtime.connecting")}</span>
+              </div>
+            ) : null}
+
             <ToggleGroup
               value={[locale]}
               onValueChange={(next) => {
